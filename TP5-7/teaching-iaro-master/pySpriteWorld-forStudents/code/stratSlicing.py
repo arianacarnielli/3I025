@@ -18,7 +18,7 @@ def ajouter_obstacles(obstacles, chemin, m):
         obstacles.append(chemin[i])
     
         
-def modifie_slice(obstacles, pos_curr, chemin, target, m, max_slice, taille):
+def modifie_slice(obstacles, pos_curr, chemin, target, m, n, max_slice, taille):
     if m < len(chemin):
         sli = chemin[:m]
         reste = chemin[m:]
@@ -40,7 +40,7 @@ def modifie_slice(obstacles, pos_curr, chemin, target, m, max_slice, taille):
                 return ut.calcul_chemin(pos_curr, target, obstacles,taille)
             except ut.ThereIsNoPath:
                 # Si ce n'est possible, on reste arrête les m prochaines itérations
-                return [pos_curr]*m + chemin
+                return [pos_curr]*n + chemin
         else:
             return detour + reste
     else:
@@ -59,7 +59,6 @@ def execute(dico_indices, init_states, game, m = 5, n = 3, max_slice = 10, itera
     
     fini = np.zeros(nbPlayers, dtype = bool)
     current_pos = init_states.copy()
-    PasBouge = np.zeros(nbPlayers, dtype = bool)
     
     for i in range(iterations):
         if np.all(fini):
@@ -68,8 +67,7 @@ def execute(dico_indices, init_states, game, m = 5, n = 3, max_slice = 10, itera
         if i % n == 0:
             obstacles = [w.get_rowcol() for w in game.layers['obstacle']]
             for k in range(nbPlayers):
-                if PasBouge[k]:
-                    obstacles.append(current_pos[k])
+                obstacles.append(current_pos[k])
             
             for k in dico_indices:
                 chemin = dico_indices[k][2]
@@ -77,7 +75,7 @@ def execute(dico_indices, init_states, game, m = 5, n = 3, max_slice = 10, itera
                 if fini[k]:
                     obstacles.append(target)
                     continue
-                dico_indices[k][2] = modifie_slice(obstacles, current_pos[k], chemin, target, m, max_slice, (game.spriteBuilder.rowsize, game.spriteBuilder.colsize))
+                dico_indices[k][2] = modifie_slice(obstacles, current_pos[k], chemin, target, m, n, max_slice, (game.spriteBuilder.rowsize, game.spriteBuilder.colsize))
                 ajouter_obstacles(obstacles, dico_indices[k][2], m)
         
         for k in dico_indices:
@@ -85,10 +83,6 @@ def execute(dico_indices, init_states, game, m = 5, n = 3, max_slice = 10, itera
                 continue
             player = dico_indices[k][0]
             (x,y) = dico_indices[k][2][0]
-            if current_pos[k] == (x, y):
-                PasBouge[k] = True
-            else:
-                PasBouge[k] = False
             current_pos[k] = (x, y)
             del dico_indices[k][2][0]
             player.set_rowcol(x, y)  

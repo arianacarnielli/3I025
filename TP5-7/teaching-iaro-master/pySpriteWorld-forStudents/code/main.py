@@ -33,7 +33,7 @@ game = Game()
 
 def init(_boardname = None):
     global player,game
-    name = _boardname if _boardname is not None else 'pathfindingWorld_MultiPlayer1'
+    name = _boardname if _boardname is not None else 'pathfindingWorld_MultiPlayer8'
     game = Game('Cartes/' + name + '.json', SpriteBuilder)
     game.O = Ontology(True, 'SpriteSheet-32x32/tiny_spritesheet_ontology.csv')
     game.populate_sprite_names(game.O)
@@ -65,7 +65,7 @@ def mainCoopBase():
     goalStates = [o.get_rowcol() for o in game.layers['ramassable']]
 
     # Pour garantir qu'on aura une collision a la carte par defaut
-    goalStates = [(12, 6), (19, 8), (6, 7)]     # 1 collision: 1-2
+    #goalStates = [(12, 6), (19, 8), (6, 7)]     # 1 collision: 1-2
     print ("Goal states:", goalStates)
     
     # on localise tous les murs
@@ -122,9 +122,10 @@ def mainSlicing():
     
     # on localise tous les objets ramassables
     goalStates = [o.get_rowcol() for o in game.layers['ramassable']]
-
+    #goalStates.reverse()
     # Pour garantir qu'on aura une collision a la carte par defaut
-    goalStates = [(12, 6), (19, 8), (6, 7)]     # 1 collision: 1-2
+    #goalStates = [(12, 6), (19, 8), (6, 7)]     # 1 collision: 1-2
+    
     print ("Goal states:", goalStates)
     
     # on localise tous les murs
