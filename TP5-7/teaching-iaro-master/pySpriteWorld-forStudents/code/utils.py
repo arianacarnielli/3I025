@@ -81,16 +81,13 @@ def voisins(pos, obstacles, taille, goalState=None):
             res.append((x+i, y + j))
     return res
 
-def voisins_temp(pos, obstacles, taille, goalState=None):
+def voisins_temp(pos, obs_fixe, obs_mob, taille):
     """
     """
     res = []
     (x, y), t = pos
     for i, j in [(0,1),(0,-1),(1,0),(-1,0), (0,0)]:
-        if goalState!=None:
-            if (x + i,y + j)==goalState:
-                return [(goalState,t+1)]
-        if ((x + i,y + j) not in obstacles) and (((x + i,y + j), t + 1) not in obstacles) and (x + i) >= 0 and (x + i) < taille[0] and (y + j) >= 0 and (y + j) < taille[1]:
+        if ((x + i,y + j) not in obs_fixe) and (((x + i,y + j), t + 1) not in obs_mob) and (x + i) >= 0 and (x + i) < taille[0] and (y + j) >= 0 and (y + j) < taille[1]:
             res.append(((x + i, y + j), t + 1))
     return res
 
@@ -103,11 +100,8 @@ def detecte_collision(obstacles, chemin):
     return False
 
 def recalcule_obs_fixe(obstacles, iterations):
-    res = []
-    for i in range(iterations):
-        for obs in obstacles:
-            res.append((obs, i))
-    return res
+    return {(obs, i) for i in range(iterations) for obs in obstacles}
+
 #==============================================================================
 # Algorithme A*
 #==============================================================================

@@ -9,6 +9,7 @@ Created on Sun Mar 17 18:22:12 2019
 #==============================================================================
 import pygame
 import sys
+import time
 
 #==============================================================================
 # Import des fonctions codées
@@ -34,11 +35,11 @@ game = Game()
 
 def init(_boardname = None):
     global player,game
-    name = _boardname if _boardname is not None else 'pathfindingWorld_MultiPlayer7'
+    name = _boardname if _boardname is not None else 'pathfindingWorld_MultiPlayer5'
     game = Game('Cartes/' + name + '.json', SpriteBuilder)
     game.O = Ontology(True, 'SpriteSheet-32x32/tiny_spritesheet_ontology.csv')
     game.populate_sprite_names(game.O)
-    game.fps = 2  # frames per second
+    game.fps = 1  # frames per second
     game.mainiteration()
     game.mask.allow_overlaping_players = True
     
@@ -165,39 +166,23 @@ def mainTempA():
     # Initialisation
     #-------------------------------
     
-    players = [o for o in game.layers['joueur']]
-    nbPlayers = len(players)
-       
-    # on localise tous les états initiaux (loc du joueur)
-    initStates = [o.get_rowcol() for o in game.layers['joueur']]
-    print ("Init states:", initStates)
-    
-    # on localise tous les objets ramassables
-    goalStates = [o.get_rowcol() for o in game.layers['ramassable']]
-    
-    goalStates.reverse()
-    # Pour garantir qu'on aura une collision a la carte par defaut
-    #goalStates = [(12, 6), (19, 8), (6, 7)]     # 1 collision: 1-2
-    
-    print ("Goal states:", goalStates)
-    
-    # on localise tous les murs
-    #wallStates = [w.get_rowcol() for w in game.layers['obstacle']]
-    #print ("Wall states:", wallStates)
-    print()
-    
     solver = sta.temporal_A(game, iterations)
-    solver.goalStates.reverse()
     
+    print ("Init states:", solver.initStates)
+    print ("Goal states:", solver.goalStates)
+    
+    #solver.goalStates.reverse()
+    
+    start = time.process_time()
     tab_chemins = []
-    for i in range(nbPlayers):
+    for i in range(len(solver.initStates)):
         print("appel chemin ", i)
         tab_chemins.append(solver.chemin(i))
+    print("Temps de calcul :",time.process_time() - start)
     
+    players = [o for o in game.layers['joueur']]
     
-    print(tab_chemins)
-    
-    ut.execution_parallele(tab_chemins, iterations, players, goalStates, game)
+    ut.execution_parallele(tab_chemins, iterations, players, solver.goalStates, game)
     
     pygame.quit()
     
