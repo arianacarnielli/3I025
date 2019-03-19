@@ -65,7 +65,7 @@ def dist_man(pos1, pos2):
 # Liste de pas possibles
 #==============================================================================
 
-def voisins(pos, obstacles, taille):
+def voisins(pos, obstacles, taille, goalState=None):
     """
     Retourne la liste de positions voisines possibles a partir de point pos et 
     le tableau des obstacles. Taille est un duplet contenant le nombre de lignes
@@ -74,10 +74,25 @@ def voisins(pos, obstacles, taille):
     res = []
     x, y = pos
     for i, j in [(0,1),(0,-1),(1,0),(-1,0)]:
+        if goalState!=None:
+            if (x + i,y + j)==goalState:
+                return [goalState]
         if ((x + i,y + j) not in obstacles) and (x + i) >= 0 and (x + i) < taille[0] and (y + j) >= 0 and (y + j) < taille[1]:
             res.append((x+i, y + j))
     return res
 
+def voisins_temp(pos, obstacles, taille, goalState=None):
+    """
+    """
+    res = []
+    (x, y), t = pos
+    for i, j in [(0,1),(0,-1),(1,0),(-1,0), (0,0)]:
+        if goalState!=None:
+            if (x + i,y + j)==goalState:
+                return [(goalState,t+1)]
+        if ((x + i,y + j) not in obstacles) and (((x + i,y + j), t + 1) not in obstacles) and (x + i) >= 0 and (x + i) < taille[0] and (y + j) >= 0 and (y + j) < taille[1]:
+            res.append(((x + i, y + j), t + 1))
+    return res
 
 def detecte_collision(obstacles, chemin):
     """
@@ -87,6 +102,12 @@ def detecte_collision(obstacles, chemin):
             return True
     return False
 
+def recalcule_obs_fixe(obstacles, iterations):
+    res = []
+    for i in range(iterations):
+        for obs in obstacles:
+            res.append((obs, i))
+    return res
 #==============================================================================
 # Algorithme A*
 #==============================================================================
@@ -111,7 +132,7 @@ def calcul_chemin(pos_init, pos_fin, obstacles, taille):
 #            print(came_from)
             break
         
-        voisin = voisins(pos, obstacles, taille)
+        voisin = voisins(pos, obstacles, taille, pos_fin)
         for pos_next in voisin:
             new_cost = cost_so_far[pos] + dist_man(pos, pos_next)
             if pos_next not in cost_so_far or new_cost < cost_so_far[pos_next]:
@@ -132,3 +153,30 @@ def calcul_chemin(pos_init, pos_fin, obstacles, taille):
     return chemin
 
 
+
+def execution_parallele(tab_chemin, iterations, players, goalStates, game):
+    nbPlayers = len(tab_chemin)
+    score = [0]*nbPlayers
+    tours = 0
+    for i in range(iterations):
+        for j in range(nbPlayers):
+            if len(tab_chemin[j]) == 0 :
+                continue
+            ((x,y),t) = tab_chemin[j][0]
+            del tab_chemin[j][0]
+            if not (x, y) == goalStates[j]:
+                players[j].set_rowcol(x,y)                
+                print ("pos :",j,x,y)
+            else:
+                print ("Objet trouvé par le joueur ", j,"\n")
+                players[j].set_rowcol(goalStates[j][0],goalStates[j][1])
+                score[j]+=1
+        print()
+        game.mainiteration()
+        tours += 1
+        print("tour :", tours)
+        if sum(score) == nbPlayers:
+            break;
+    print ("scores:", score)
+    print("temps total pour la récupération de toutes les fioles : ", tours)
+    return score

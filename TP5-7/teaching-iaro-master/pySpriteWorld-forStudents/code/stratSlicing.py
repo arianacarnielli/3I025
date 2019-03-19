@@ -46,7 +46,7 @@ def modifie_slice(obstacles, pos_curr, chemin, target, m, n, max_slice, taille):
     else:
         return chemin
 
-def execute(dico_indices, init_states, game, m = 5, n = 3, max_slice = 10, iterations = 100):
+def execute(dico_indices, init_states, game, m = 3, n = 2, max_slice = 10, iterations = 100):
     """
     dico_indices = dictionnaire où chaque valeur correspond a un triplet [player, goalState, path]
     m = longueur qu'on regarde dans le futur pour le slicing

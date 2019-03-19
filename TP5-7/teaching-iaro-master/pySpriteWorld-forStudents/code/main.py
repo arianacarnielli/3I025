@@ -13,6 +13,7 @@ import sys
 #==============================================================================
 # Import des fonctions codées
 #==============================================================================
+import stratTempA as sta
 import stratCoopBase as scb
 import stratSlicing as ss
 import utils as ut
@@ -33,11 +34,11 @@ game = Game()
 
 def init(_boardname = None):
     global player,game
-    name = _boardname if _boardname is not None else 'pathfindingWorld_MultiPlayer8'
+    name = _boardname if _boardname is not None else 'pathfindingWorld_MultiPlayer7'
     game = Game('Cartes/' + name + '.json', SpriteBuilder)
     game.O = Ontology(True, 'SpriteSheet-32x32/tiny_spritesheet_ontology.csv')
     game.populate_sprite_names(game.O)
-    game.fps = 1.5  # frames per second
+    game.fps = 2  # frames per second
     game.mainiteration()
     game.mask.allow_overlaping_players = True
     
@@ -70,6 +71,12 @@ def mainCoopBase():
     
     # on localise tous les murs
     wallStates = [w.get_rowcol() for w in game.layers['obstacle']]
+    for state in initStates:    # éviter les collisions au début
+        wallStates.append(state)
+    for state in goalStates:    # et à la fin
+        wallStates.append(state)
+    
+    
     #print ("Wall states:", wallStates)
     print()
     
@@ -146,7 +153,59 @@ def mainSlicing():
 
     pygame.quit()
     
+def mainTempA():
+    iterations = 100 # default
+    if len(sys.argv) == 2:
+        iterations = int(sys.argv[1])
+    print ("Iterations max: ", iterations)
+
+    init()
+        
+    #-------------------------------
+    # Initialisation
+    #-------------------------------
+    
+    players = [o for o in game.layers['joueur']]
+    nbPlayers = len(players)
+       
+    # on localise tous les états initiaux (loc du joueur)
+    initStates = [o.get_rowcol() for o in game.layers['joueur']]
+    print ("Init states:", initStates)
+    
+    # on localise tous les objets ramassables
+    goalStates = [o.get_rowcol() for o in game.layers['ramassable']]
+    
+    goalStates.reverse()
+    # Pour garantir qu'on aura une collision a la carte par defaut
+    #goalStates = [(12, 6), (19, 8), (6, 7)]     # 1 collision: 1-2
+    
+    print ("Goal states:", goalStates)
+    
+    # on localise tous les murs
+    #wallStates = [w.get_rowcol() for w in game.layers['obstacle']]
+    #print ("Wall states:", wallStates)
+    print()
+    
+    solver = sta.temporal_A(game, iterations)
+    solver.goalStates.reverse()
+    
+    tab_chemins = []
+    for i in range(nbPlayers):
+        print("appel chemin ", i)
+        tab_chemins.append(solver.chemin(i))
+    
+    
+    print(tab_chemins)
+    
+    ut.execution_parallele(tab_chemins, iterations, players, goalStates, game)
+    
+    pygame.quit()
+    
+    #-------------------------------
+    # Initialisation
+    #-------------------------------
+    
 if __name__ == '__main__':
     #mainCoopBase()
-    mainSlicing()
-    
+    #mainSlicing()
+    mainTempA()
