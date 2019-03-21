@@ -74,9 +74,9 @@ def voisins(pos, obstacles, taille, goalState=None):
     res = []
     x, y = pos
     for i, j in [(0,1),(0,-1),(1,0),(-1,0)]:
-        if goalState!=None:
-            if (x + i,y + j)==goalState:
-                return [goalState]
+        if (x + i,y + j) == goalState:
+            #return [goalState]
+            res.append(goalState)
         if ((x + i,y + j) not in obstacles) and (x + i) >= 0 and (x + i) < taille[0] and (y + j) >= 0 and (y + j) < taille[1]:
             res.append((x+i, y + j))
     return res
@@ -90,6 +90,20 @@ def voisins_temp(pos, obs_fixe, obs_mob, taille):
         if ((x + i,y + j) not in obs_fixe) and (((x + i,y + j), t + 1) not in obs_mob) and (x + i) >= 0 and (x + i) < taille[0] and (y + j) >= 0 and (y + j) < taille[1]:
             res.append(((x + i, y + j), t + 1))
     return res
+
+def voisins_tempD(iden, pos, obs_fixe, obs_mob, taille):
+    """
+    """
+    res = []
+    (x, y), t = pos
+    for i, j in [(0,1),(0,-1),(1,0),(-1,0), (0,0)]:
+        if (x + i) >= 0 and (x + i) < taille[0] and (y + j) >= 0 and (y + j) < taille[1]:
+            if (x + i,y + j) not in obs_fixe:
+                if ((x + i,y + j), t + 1) not in obs_mob or obs_mob[((x + i,y + j), t + 1)]==iden:
+                    if ((x + i,y + j), t + 2) not in obs_mob or obs_mob[((x + i,y + j), t + 2)]==iden :
+                        res.append(((x + i, y + j), t + 1))
+    return res
+
 
 def detecte_collision(obstacles, chemin):
     """

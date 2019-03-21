@@ -35,11 +35,11 @@ game = Game()
 
 def init(_boardname = None):
     global player,game
-    name = _boardname if _boardname is not None else 'pathfindingWorld_MultiPlayer5'
+    name = _boardname if _boardname is not None else 'pathfindingWorld_MultiPlayer9'
     game = Game('Cartes/' + name + '.json', SpriteBuilder)
     game.O = Ontology(True, 'SpriteSheet-32x32/tiny_spritesheet_ontology.csv')
     game.populate_sprite_names(game.O)
-    game.fps = 1  # frames per second
+    game.fps = 1.5  # frames per second
     game.mainiteration()
     game.mask.allow_overlaping_players = True
     
@@ -65,6 +65,7 @@ def mainCoopBase():
     
     # on localise tous les objets ramassables
     goalStates = [o.get_rowcol() for o in game.layers['ramassable']]
+    goalStates.reverse()
 
     # Pour garantir qu'on aura une collision a la carte par defaut
     #goalStates = [(12, 6), (19, 8), (6, 7)]     # 1 collision: 1-2
@@ -130,7 +131,7 @@ def mainSlicing():
     
     # on localise tous les objets ramassables
     goalStates = [o.get_rowcol() for o in game.layers['ramassable']]
-    #goalStates.reverse()
+    goalStates.reverse()
     # Pour garantir qu'on aura une collision a la carte par defaut
     #goalStates = [(12, 6), (19, 8), (6, 7)]     # 1 collision: 1-2
     
@@ -171,7 +172,9 @@ def mainTempA():
     print ("Init states:", solver.initStates)
     print ("Goal states:", solver.goalStates)
     
-    #solver.goalStates.reverse()
+    newGoalStates = solver.goalStates.copy()
+    newGoalStates.reverse()
+    solver.setGoalStates(newGoalStates)
     
     start = time.process_time()
     tab_chemins = []
@@ -186,11 +189,38 @@ def mainTempA():
     
     pygame.quit()
     
+    
+    
+def mainTempA_D():
+    iterations = 100 # default
+    if len(sys.argv) == 2:
+        iterations = int(sys.argv[1])
+    print ("Iterations max: ", iterations)
+
+    init()
+        
     #-------------------------------
     # Initialisation
     #-------------------------------
     
+    solver = sta.temporal_A_D(game, iterations, 7)
+    newGoalStates = solver.goalStates.copy()
+    newGoalStates.reverse()
+    solver.setGoalStates(newGoalStates)
+    
+    print ("Init states:", solver.initStates)
+    print ("Goal states:", solver.goalStates)
+    
+    #solver.goalStates.reverse()
+
+    
+    solver.execute()
+    
+    pygame.quit()
+    
+    
 if __name__ == '__main__':
     #mainCoopBase()
     #mainSlicing()
-    mainTempA()
+    #mainTempA()
+    mainTempA_D()
