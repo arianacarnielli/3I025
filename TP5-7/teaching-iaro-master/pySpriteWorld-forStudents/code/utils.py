@@ -1,29 +1,33 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sun Mar 17 16:07:00 2019
 
-@author: arian
-"""
-
+#==============================================================================
+# Import des bibliothèques
+#==============================================================================
 import heapq as hq
 
 #==============================================================================
 # Afichages
 #==============================================================================
 def afficher_liste(l):
+    """
+    Affiche une liste avec un élément par ligne.
+    """
     for e in l:
         print(e)
-    return
 
 def afficher_matrice(m):
+    """
+    Affiche une matrice avec un élément par ligne.
+    """
     for i in range(len(m)):
         print(m[i])
-    return
 
 def afficher_dico(d):
+    """
+    Affiche un dictionnaire avec une paire clé-valeur par ligne.
+    """
     for k in d:
         print(k,":", d[k])
-    return
 
 def affiche_monde(wallStates, tab_chemins, taille):
     """
@@ -49,12 +53,10 @@ def affiche_monde(wallStates, tab_chemins, taille):
             str += monde[i][j]
         print(str)
     print()
-    return
 
 #==============================================================================
-# Heuristiques pour les distances
+# Heuristique pour les distances
 #==============================================================================
-    
 def dist_man(pos1, pos2):
     """
     Calcule la distance de Manhattan entre 2 points 2D.
@@ -64,25 +66,26 @@ def dist_man(pos1, pos2):
 #==============================================================================
 # Liste de pas possibles
 #==============================================================================
-
-def voisins(pos, obstacles, taille, goalState=None):
+def voisins(pos, obstacles, taille):
     """
-    Retourne la liste de positions voisines possibles a partir de point pos et 
-    le tableau des obstacles. Taille est un duplet contenant le nombre de lignes
-    et de colonnes du monde.
+    Retourne la liste de positions voisines possibles a partir de pos et 
+    le tableau des obstacles.
+    taille : duplet contenant le nombre de lignes et de colonnes du monde.
     """
     res = []
     x, y = pos
     for i, j in [(0,1),(0,-1),(1,0),(-1,0)]:
-        if (x + i,y + j) == goalState:
-            #return [goalState]
-            res.append(goalState)
         if ((x + i,y + j) not in obstacles) and (x + i) >= 0 and (x + i) < taille[0] and (y + j) >= 0 and (y + j) < taille[1]:
             res.append((x+i, y + j))
     return res
 
 def voisins_temp(pos, obs_fixe, obs_mob, taille):
     """
+    Retourne la liste de positions voisines possibles a partir de pos et 
+    l'ensemble des obstacles fixes (obs_fixe) et mobiles (obs_mob).
+    obs_fixe : ensemble de duplets de coordonnées spatiales.
+    obs_mob : ensemble de duplets de la forme ((x, y), t).
+    taille : duplet contenant le nombre de lignes et de colonnes du monde.
     """
     res = []
     (x, y), t = pos
@@ -93,12 +96,25 @@ def voisins_temp(pos, obs_fixe, obs_mob, taille):
 
 def voisins_tempD(iden, pos, obs_fixe, obs_mob, taille):
     """
+    Retourne la liste de positions voisines possibles a partir de pos et 
+    l'ensemble des obstacles fixes (obs_fixe) et mobiles (obs_mob).
+    Prend en compte dans le calcul si l'obstacle mobile a été réservé par le
+    joueur iden lui-même ou pas.
+    iden : identifiant du joeur.
+    obs_fixe : ensemble de duplets de coordonnées spatiales.
+    obs_mob : dictionnaire indexé par duplets de la forme ((x, y), t) et
+              contenant comme valeur l'identifiant du joueur ayant réservé.
+    taille : duplet contenant le nombre de lignes et de colonnes du monde.
     """
     res = []
     (x, y), t = pos
     for i, j in [(0,1),(0,-1),(1,0),(-1,0), (0,0)]:
+        # On vérifie d'abord si on est à l'intérieur de la grille
         if (x + i) >= 0 and (x + i) < taille[0] and (y + j) >= 0 and (y + j) < taille[1]:
+            # On vérifie que ce n'est pas un obstacle fixe
             if (x + i,y + j) not in obs_fixe:
+                # On vérifie si le seuls obstacles mobiles dans les deux prochains instants
+                # de temps sont le joueur lui-même
                 if ((x + i,y + j), t + 1) not in obs_mob or obs_mob[((x + i,y + j), t + 1)]==iden:
                     if ((x + i,y + j), t + 2) not in obs_mob or obs_mob[((x + i,y + j), t + 2)]==iden :
                         res.append(((x + i, y + j), t + 1))
@@ -107,6 +123,7 @@ def voisins_tempD(iden, pos, obs_fixe, obs_mob, taille):
 
 def detecte_collision(obstacles, chemin):
     """
+    Détecte si le chemin collide avec un des obstacles.
     """
     for pos in chemin:
         if pos in obstacles:
@@ -114,6 +131,10 @@ def detecte_collision(obstacles, chemin):
     return False
 
 def recalcule_obs_fixe(obstacles, iterations):
+    """
+    Manière naïve de transformer les obstacles fixes 2D (x, y) en obstacles
+    avec le temps.
+    """
     return {(obs, i) for i in range(iterations) for obs in obstacles}
 
 #==============================================================================
@@ -121,9 +142,21 @@ def recalcule_obs_fixe(obstacles, iterations):
 #==============================================================================
     
 class ThereIsNoPath(Exception):
+    """
+    Exception levée lorsque l'algorithme ne trouve pas de chemin.
+    """
     pass
 
 def calcul_chemin(pos_init, pos_fin, obstacles, taille):
+    """
+    Algorithme A* pour le calcul du chemin le plus court en utilisant comme
+    heuristique la distance de Manhattan.
+    pos_init : point de départ
+    pos_fin : point d'arrivée
+    obstacles : tableau d'obstacles
+    taille : duplet contenant le nombre de lignes et de colonnes du monde.
+    Utilisée dans les stratégies stratSlicing et stratCoopBase.
+    """
     pos = pos_init
     frontier =  []
     hq.heappush(frontier,(0, pos)) 
@@ -136,11 +169,9 @@ def calcul_chemin(pos_init, pos_fin, obstacles, taille):
         _,pos = hq.heappop(frontier)
         
         if pos == pos_fin:
-#            print ("Objet trouvé!")
-#            print(came_from)
             break
         
-        voisin = voisins(pos, obstacles, taille, pos_fin)
+        voisin = voisins(pos, obstacles, taille)
         for pos_next in voisin:
             new_cost = cost_so_far[pos] + dist_man(pos, pos_next)
             if pos_next not in cost_so_far or new_cost < cost_so_far[pos_next]:
@@ -159,32 +190,3 @@ def calcul_chemin(pos_init, pos_fin, obstacles, taille):
         raise ThereIsNoPath
     chemin.reverse()
     return chemin
-
-
-
-def execution_parallele(tab_chemin, iterations, players, goalStates, game):
-    nbPlayers = len(tab_chemin)
-    score = [0]*nbPlayers
-    tours = 0
-    for i in range(iterations):
-        for j in range(nbPlayers):
-            if len(tab_chemin[j]) == 0 :
-                continue
-            ((x,y),t) = tab_chemin[j][0]
-            del tab_chemin[j][0]
-            if not (x, y) == goalStates[j]:
-                players[j].set_rowcol(x,y)                
-                print ("pos :",j,x,y)
-            else:
-                print ("Objet trouvé par le joueur ", j,"\n")
-                players[j].set_rowcol(goalStates[j][0],goalStates[j][1])
-                score[j]+=1
-        print()
-        game.mainiteration()
-        tours += 1
-        print("tour :", tours)
-        if sum(score) == nbPlayers:
-            break;
-    print ("scores:", score)
-    print("temps total pour la récupération de toutes les fioles : ", tours)
-    return score
