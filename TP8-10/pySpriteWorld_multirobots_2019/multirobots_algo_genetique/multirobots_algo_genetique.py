@@ -33,9 +33,9 @@ SensorBelt = [-170,-80,-40,-20,+20,40,80,+170]  # angles en degres des senseurs
 screen_width=512 #512,768,... -- multiples de 32  
 screen_height=512 #512,768,... -- multiples de 32
 
-maxIterations = 2000 # infinite: -1
+maxIterations = 4000 # infinite: -1
 showSensors = False
-frameskip = 4   # 0: no-skip. >1: skip n-1 frames
+frameskip = 3000   # 0: no-skip. >1: skip n-1 frames
 verbose = False # permet d'afficher le suivi des agents (informations dans la console)
 
 occupancyGrid = []
@@ -175,20 +175,66 @@ class AgentTypeA(Agent):
         # =============================================================================
         # Strategie
         # =============================================================================
+#        self.w = np.array([0, 1, 1, 1, -1, -1, -1, 0,\
+#                           0, 1, 1, 1, -1, -1, -1, 0,\
+#                           0, 1, 1, 1, -1, -1, -1, 0,\
+#                           0])
+        N = len(SensorBelt)
         middleId = nbAgents // 2 - 0.5
-        ar_dist = np.array([self.getDistanceAtSensor(i) for i in range(len(SensorBelt))])
+        ar_dist = np.array([self.getDistanceAtSensor(i) for i in range(N)])
         ar_dist = 1 - ar_dist
-        ar_type = np.array([self.getObjectTypeAtSensor(i) for i in range(len(SensorBelt))])
-        ar_info = np.array([self.getRobotInfoAtSensor(i)["id"] if ar_type[i]==2 else middleId for i in range(ar_type.size)])
+        ar_type = np.array([self.getObjectTypeAtSensor(i) for i in range(N)])
+        ar_info = np.array([self.getRobotInfoAtSensor(i)["id"] if ar_type[i]==2 else middleId for i in range(N)])
         ar_info = np.sign((ar_info - middleId)*(self.robot.numero - middleId))
         
-        sensors = np.empty(2*ar_dist.size + 1)
-        sensors[0] = 1
-        sensors[1:(ar_dist.size+1)] = ar_dist * (ar_type % 2)
-        sensors[(ar_dist.size+1):] = ar_dist * ar_info        
+        sensors = np.empty(3*N + 1)
+        sensors[-1] = 1
+        sensors[:N] = ar_dist * (ar_type % 2)
+        sensors[N:(2*N)] = ar_dist * (ar_info==1)
+        sensors[(2*N):(3*N)] = ar_dist * (ar_info==-1)
         
         self.setRotationValue(min(1, max(-1, self.w.dot(sensors) + 0.2*random() - 0.1)))
         self.setTranslationValue(1)
+        
+        if ar_type.sum() == 0:
+            self.setRotationValue((random() > 0.5) * 2 - 1)
+#==============================================================================
+#         Évite les blocages en regardant la position
+#==============================================================================        
+        def stateToVec(s):
+            s, x = divmod(s, 10**5)
+            s, y = divmod(s, 10**5)
+            s, cpt = divmod(s, 10**2)
+            return x, y, cpt, s
+            
+        def vecToState(x, y, cpt, mode):
+            s = (10**12)*mode + (10**10)*cpt + (10**5)*y + x
+            return s
+        
+        x0, y0, cpt, mode = stateToVec(self.etat)
+        x, y = self.robot.get_centroid()
+        x = int(10*x)
+        y = int(10*y)
+        
+        if mode==0:
+            if abs(x - x0) + abs(y - y0) <= 2:
+                if cpt >= 60:
+                    mode = 1
+                else:
+                    cpt += 1
+            else:
+                pass
+        else:
+            if cpt <= 0:
+                mode = 0
+            else:
+                cpt -= 1
+                self.setRotationValue((random() > 0.5)*2 - 1)
+                self.setTranslationValue(-1)
+                
+        x0 = x
+        y0 = y
+        self.etat = vecToState(x0, y0, cpt, mode)
         
         # monitoring (optionnel - changer la valeur de verbose)
         if verbose == True:
@@ -232,17 +278,78 @@ class AgentTypeB(Agent):
         color( (255,0,0) )
         circle( *self.getRobot().get_centroid() , r = 22) # je dessine un rond bleu autour de ce robot
 
-        distGauche = self.getDistanceAtSensor(2) # renvoi une valeur normalisée entre 0 et 1
-        distDroite = self.getDistanceAtSensor(5) # renvoi une valeur normalisée entre 0 et 1
-        
-        if distGauche < distDroite:
-            self.setRotationValue( +1 )
-        elif distGauche > distDroite:
-            self.setRotationValue( -1 )
-        else:
-            self.setRotationValue( 0 )
+#==============================================================================
+#         distGauche = self.getDistanceAtSensor(2) # renvoi une valeur normalisée entre 0 et 1
+#         distDroite = self.getDistanceAtSensor(5) # renvoi une valeur normalisée entre 0 et 1
+#         
+#         if distGauche < distDroite:
+#             self.setRotationValue( +1 )
+#         elif distGauche > distDroite:
+#             self.setRotationValue( -1 )
+#         else:
+#             self.setRotationValue( 0 )
+# 
+#         self.setTranslationValue(1) # normalisé -1,+1
+#==============================================================================
 
+        middleId = nbAgents // 2 - 0.5
+        ar_dist = np.array([self.getDistanceAtSensor(i) for i in range(len(SensorBelt))])
+        ar_dist = 1 - ar_dist
+        ar_type = np.array([self.getObjectTypeAtSensor(i) for i in range(len(SensorBelt))])
+        ar_info = np.array([self.getRobotInfoAtSensor(i)["id"] if ar_type[i]==2 else middleId for i in range(ar_type.size)])
+        ar_info = np.sign((ar_info - middleId)*(self.robot.numero - middleId))
+        
+        sensors = np.empty(2*ar_dist.size + 1)
+        sensors[0] = 1
+        sensors[1:(ar_dist.size+1)] = ar_dist * (ar_type % 2)
+        sensors[(ar_dist.size+1):] = ar_dist * ar_info
+        
+        rot_val = np.dot(ar_dist[1:7] * (ar_type[1:7]!=0), [1, 1, 1, -1, -1, -1])
+        
+        #rot_val = np.dot(ar_dist[2:6], ar_type[2:6])
+    
+        self.setRotationValue(rot_val + 0.2*random()-0.1)
         self.setTranslationValue(1) # normalisé -1,+1
+        
+        if ar_type.sum() == 0:
+            self.setRotationValue((random() > 0.5) * 2 - 1)
+#==============================================================================
+#         Évite les blocages en regardant la position
+#==============================================================================        
+        def stateToVec(s):
+            s, x = divmod(s, 10**5)
+            s, y = divmod(s, 10**5)
+            s, cpt = divmod(s, 10**2)
+            return x, y, cpt, s
+            
+        def vecToState(x, y, cpt, mode):
+            s = (10**12)*mode + (10**10)*cpt + (10**5)*y + x
+            return s
+        
+        x0, y0, cpt, mode = stateToVec(self.etat)
+        x, y = self.robot.get_centroid()
+        x = int(10*x)
+        y = int(10*y)
+        
+        if mode==0:
+            if abs(x - x0) + abs(y - y0) <= 2:
+                if cpt >= 60:
+                    mode = 1
+                else:
+                    cpt += 1
+            else:
+                pass
+        else:
+            if cpt <= 0:
+                mode = 0
+            else:
+                cpt -= 1
+                self.setRotationValue((random() > 0.5)*2 - 1)
+                self.setTranslationValue(-1)
+                
+        x0 = x
+        y0 = y
+        self.etat = vecToState(x0, y0, cpt, mode)        
         
         # monitoring (optionnel - changer la valeur de verbose)
         if verbose == True:
@@ -402,7 +509,7 @@ with open("in.txt", "r") as file:
     arena = int(line)
     line = file.readline()
     w = np.array([float(x) for x in line.split()])
-    assert w.size==17
+    assert w.size==25
 
 init('empty',MyTurtle,screen_width,screen_height) # display is re-dimensioned, turtle acts as a template to create new players/robots
 game.auto_refresh = False # display will be updated only if game.mainiteration() is called

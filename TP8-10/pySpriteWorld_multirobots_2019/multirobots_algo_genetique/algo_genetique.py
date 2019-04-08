@@ -12,6 +12,7 @@ class AlgoGenetique:
     def __init__(self, nbPopulation, nbFeatures, mutation,\
                  pGood, pBad, pRandom,\
                  n, nbArenas, filename = None):
+        self.wValues = np.array([-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1])
         self.fromFile = False
         if filename is not None:
             self.fromFile = True
@@ -24,7 +25,7 @@ class AlgoGenetique:
             self.nbPopulation = nbPopulation
             self.mutation = mutation
             self.nbFeatures = nbFeatures
-            self.w = (np.random.randint(0, 21, size = (self.nbPopulation, self.nbFeatures))-10)/10
+            self.w = np.random.choice(self.wValues, size=(self.nbPopulation, self.nbFeatures))
             self.results = np.zeros(self.nbPopulation, dtype=int)
         self.nbGood = int(pGood*self.nbPopulation)
         self.nbBad = int(pBad*self.nbPopulation)
@@ -66,7 +67,7 @@ class AlgoGenetique:
         newWRow = wRow.copy()
         for i in range(self.nbFeatures):
             if np.random.rand() < self.mutation:
-                newWRow[i] = (np.random.randint(0, 21)-10)/10
+                newWRow[i] = np.random.choice(self.wValues)
         return newWRow
     
     def mutationDouble(self, wRow1, wRow2):
@@ -79,7 +80,7 @@ class AlgoGenetique:
         return self.mutationSimple(newWRow)
     
     def wRowRandom(self):
-        return (np.random.randint(0, 21, self.nbFeatures)-10)/10
+        return np.random.choice(self.wValues, size=self.nbFeatures)
 
     def evolve(self):
         newW = np.zeros(self.w.shape)
@@ -114,7 +115,12 @@ class AlgoGenetique:
             self.evolve()
         
 if __name__=="__main__":
-    ag = AlgoGenetique(nbPopulation = 20, nbFeatures = 17, mutation = 1/17,\
-                       pGood = 0.25, pBad = 0.1, pRandom = 0.1,\
+    ag = AlgoGenetique(nbPopulation = 20, nbFeatures = 25, mutation = 1/25,\
+                       pGood = 0.25, pBad = 0.1, pRandom = 0.0,\
                        n = 5, nbArenas = 3)
-    ag.run(5)
+    for i in range(4):
+        ag.w[i, :] = np.array([0, 1, 1, 1, -1, -1, -1, 0,\
+                               0, 1, 1, 1, -1, -1, -1, 0,\
+                               0, 1, 1, 1, -1, -1, -1, 0,\
+                               0])
+    ag.run(6)

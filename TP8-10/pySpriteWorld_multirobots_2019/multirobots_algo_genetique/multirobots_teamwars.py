@@ -101,9 +101,9 @@ import atexit
 game = Game()
 agents = []
 
-arena = 0
+arena = 2
 
-nbAgents = 8 # doit être pair et inférieur a 32
+nbAgents = 2 # doit être pair et inférieur a 32
 maxSensorDistance = 30              # utilisé localement.
 maxRotationSpeed = 5
 maxTranslationSpeed = 1
@@ -112,9 +112,9 @@ SensorBelt = [-170,-80,-40,-20,+20,40,80,+170]  # angles en degres des senseurs
 screen_width=512 #512,768,... -- multiples de 32  
 screen_height=512 #512,768,... -- multiples de 32
 
-maxIterations = 6000 # infinite: -1
-showSensors = False
-frameskip = 4   # 0: no-skip. >1: skip n-1 frames
+maxIterations = 4000 # infinite: -1
+showSensors = True
+frameskip = 1   # 0: no-skip. >1: skip n-1 frames
 verbose = False # permet d'afficher le suivi des agents (informations dans la console)
 
 occupancyGrid = []
@@ -186,35 +186,104 @@ class AgentTypeA(object):
         # =============================================================================
         import numpy as np
         
+        middleId = nbAgents // 2 - 0.5
         ar_dist = np.array([self.getDistanceAtSensor(i) for i in range(len(SensorBelt))])
         ar_dist = 1 - ar_dist
         ar_type = np.array([self.getObjectTypeAtSensor(i) for i in range(len(SensorBelt))])
+        ar_info = np.array([self.getRobotInfoAtSensor(i)["id"] if ar_type[i]==2 else middleId for i in range(ar_type.size)])
+        ar_info = np.sign((ar_info - middleId)*(self.robot.numero - middleId))
         
-        if self.id == 0:
+        sensors = np.empty(2*ar_dist.size + 1)
+        sensors[0] = 1
+        sensors[1:(ar_dist.size+1)] = ar_dist * (ar_type % 2)
+        sensors[(ar_dist.size+1):] = ar_dist * ar_info
         
-            ar_dist = np.array([self.getDistanceAtSensor(2), self.getDistanceAtSensor(3),  self.getDistanceAtSensor(4), self.getDistanceAtSensor(5)])
-            ar_dist = 1 - ar_dist
-                
-            ar_type = np.array([self.getObjectTypeAtSensor(2), self.getObjectTypeAtSensor(3), self.getObjectTypeAtSensor(4), self.getObjectTypeAtSensor(5)])
+        rot_val = np.dot(ar_dist[1:7] * (ar_type[1:7]!=0), [1, 1, 1, -1, -1, -1])
+        
+        #rot_val = np.dot(ar_dist[2:6], ar_type[2:6])
     
-            rot_val = np.dot(ar_dist, ar_type)
+        self.setRotationValue(rot_val + 0.2*random()-0.1)
+        self.setTranslationValue(1) # normalisé -1,+1
+        
+        if ar_type.sum() == 0:
+            self.setRotationValue((random() > 0.5) * 2 - 1)
+#==============================================================================
+#         Évite les blocages en regardant la position
+#==============================================================================        
+        def stateToVec(s):
+            s, x = divmod(s, 10**5)
+            s, y = divmod(s, 10**5)
+            s, cpt = divmod(s, 10**2)
+            return x, y, cpt, s
             
-            self.setRotationValue(-rot_val + 0.2*random()-0.1)
-            self.setTranslationValue(1) # normalisé -1,+1
+        def vecToState(x, y, cpt, mode):
+            s = (10**12)*mode + (10**10)*cpt + (10**5)*y + x
+            return s
+        
+        x0, y0, cpt, mode = stateToVec(self.etat)
+        x, y = self.robot.get_centroid()
+        x = int(10*x)
+        y = int(10*y)
+        
+        if mode==0:
+            if abs(x - x0) + abs(y - y0) <= 2:
+                if cpt >= 60:
+                    mode = 1
+                else:
+                    cpt += 1
+            else:
+                pass
         else:
-            #si il ne capte pas des obstacles, il essaye de couvrir le plus de chemin possible
-            if ar_dist.sum() == len(SensorBelt):
-                rand = random.uniform(-1, 1)
-                self.setRotationValue(0 + rand)
-                self.setTranslationValue(1) # normalisé -1,+1
-            else: 
-                self.setRotationValue(0)
-                self.setTranslationValue(0)
-    
+            if cpt <= 0:
+                mode = 0
+            else:
+                cpt -= 1
+                self.setRotationValue((random() > 0.5)*2 - 1)
+                self.setTranslationValue(-1)
+                
+        x0 = x
+        y0 = y
+        self.etat = vecToState(x0, y0, cpt, mode)
+#==============================================================================
+#         Évite les blocages en regardant les capteurs        
+#==============================================================================
+#==============================================================================
+#         def stateToVec(s, bits = 6, size = 8):
+#             vec = np.empty(size, dtype=int)
+#             for i in range(size-1, -1, -1):
+#                 s, vec[i] = divmod(s, 2**bits)
+#             return vec, s
+#         
+#         def vecToState(vec, mode, bits = 6):
+#             gambiarra = 2**100
+#             s = gambiarra + mode
+#             for i in range(vec.size):
+#                 s = (s << bits) + (vec[i] % (2**bits))
+#                 gambiarra = (gambiarra << bits)
+#             return s - gambiarra
+#         
+#         vec, mode = stateToVec(self.etat)
+#         #print(vec, mode)
+#         if mode == 1:
+#             if np.all(vec == 0):
+#                 mode = 0
+#             else:
+#                 vec -= 1
+#                 self.setRotationValue((random() * 2) - 1)
+#                 self.setTranslationValue(-1)
+#         else:
+#             if (vec >= 60).sum() >= 2:
+#                 mode = 1
+#                 vec[:] = 60
+#             else:
+#                 vec[ar_type != 0] += 1
+#         #print(vec, mode)
+#         self.etat = vecToState(np.minimum(vec, 60), mode)
+#==============================================================================
         
 		# monitoring (optionnel - changer la valeur de verbose)
         if verbose == True:
-	        print ("Robot #"+str(self.id)+" [teamname:\""+str(self.teamname)+"\"] [variable mémoire = "+str(self.etat)+"] :")
+	        print ("Robot #"+str(self.id)+" [teamname:\""+str(self.teamname)+"\"] [variable mémoire = "+str(self.etat)+"] :" "[position : "+str(self.robot.get_centroid())+"]")
 	        for i in range(len(SensorBelt)):
 	            print ("\tSenseur #"+str(i)+" (angle: "+ str(SensorBelt[i])+"°)")
 	            print ("\t\tDistance  :",self.getDistanceAtSensor(i))
@@ -258,10 +327,10 @@ class AgentTypeA(object):
 
     def setTranslationValue(self,value):
         if value > 1:
-            print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = maxTranslationSpeed
         elif value < -1:
-            print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = -maxTranslationSpeed
         else:
             value = value * maxTranslationSpeed
@@ -269,10 +338,10 @@ class AgentTypeA(object):
 
     def setRotationValue(self,value):
         if value > 1:
-            print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = maxRotationSpeed
         elif value < -1:
-            print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = -maxRotationSpeed
         else:
             value = value * maxRotationSpeed
@@ -325,16 +394,28 @@ class AgentTypeB(object):
         color( (255,0,0) )
         circle( *self.getRobot().get_centroid() , r = 22) # je dessine un rond bleu autour de ce robot
 
-        distGauche = self.getDistanceAtSensor(2) # renvoi une valeur normalisée entre 0 et 1
-        distDroite = self.getDistanceAtSensor(5) # renvoi une valeur normalisée entre 0 et 1
+#==============================================================================
+#         distGauche = self.getDistanceAtSensor(2) # renvoi une valeur normalisée entre 0 et 1
+#         distDroite = self.getDistanceAtSensor(5) # renvoi une valeur normalisée entre 0 et 1
+#         
+#         if distGauche < distDroite:
+#             self.setRotationValue( +1 )
+#         elif distGauche > distDroite:
+#             self.setRotationValue( -1 )
+#         else:
+#             self.setRotationValue( 0 )
+# 
+#         self.setTranslationValue(1) # normalisé -1,+1
+#==============================================================================
+        import numpy as np   
+        ar_dist = np.array([self.getDistanceAtSensor(2), self.getDistanceAtSensor(3),  self.getDistanceAtSensor(4), self.getDistanceAtSensor(5)])
+        ar_dist = 1 - ar_dist
         
-        if distGauche < distDroite:
-            self.setRotationValue( +1 )
-        elif distGauche > distDroite:
-            self.setRotationValue( -1 )
-        else:
-            self.setRotationValue( 0 )
+        ar_type = np.array([self.getObjectTypeAtSensor(2), self.getObjectTypeAtSensor(3), self.getObjectTypeAtSensor(4), self.getObjectTypeAtSensor(5)])
 
+        rot_val = np.dot(ar_dist, ar_type)
+    
+        self.setRotationValue(-rot_val + 0.2*random()-0.1)
         self.setTranslationValue(1) # normalisé -1,+1
         
 		# monitoring (optionnel - changer la valeur de verbose)
@@ -384,10 +465,10 @@ class AgentTypeB(object):
 
     def setTranslationValue(self,value):
         if value > 1:
-            print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = maxTranslationSpeed
         elif value < -1:
-            print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = -maxTranslationSpeed
         else:
             value = value * maxTranslationSpeed
@@ -395,10 +476,10 @@ class AgentTypeB(object):
 
     def setRotationValue(self,value):
         if value > 1:
-            print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = maxRotationSpeed
         elif value < -1:
-            print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = -maxRotationSpeed
         else:
             value = value * maxRotationSpeed
@@ -565,8 +646,8 @@ iteration = 0
 while iteration != maxIterations:
     stepWorld()
     game.mainiteration()
-    if iteration % 200 == 0:
-        displayOccupancyGrid()
+    #if iteration % 200 == 0:
+    #    displayOccupancyGrid()
     iteration = iteration + 1
 onExit()
 pygame.quit()
