@@ -10,8 +10,8 @@ import numpy as np
 #==============================================================================
 # IMMPORTANT ! pas d'affichage graphique grace aux deux lignes suivantes! 
 #==============================================================================
-import os
-os.environ["SDL_VIDEODRIVER"] = "dummy"
+#import os
+#os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 '''''''''''''''''''''''''''''
 '''''''''''''''''''''''''''''
