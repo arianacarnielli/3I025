@@ -91,6 +91,8 @@ import time
 import sys
 import atexit
 
+import numpy as np
+import math
 
 '''''''''''''''''''''''''''''
 '''''''''''''''''''''''''''''
@@ -103,7 +105,8 @@ agents = []
 
 arena = 2
 
-nbAgents = 2 # doit être pair et inférieur a 32
+
+nbAgents = 8 # doit être pair et inférieur a 32
 maxSensorDistance = 30              # utilisé localement.
 maxRotationSpeed = 5
 maxTranslationSpeed = 1
@@ -180,33 +183,130 @@ class AgentTypeA(object):
         color( (0,255,0) )
         circle( *self.getRobot().get_centroid() , r = 22) # je dessine un rond vert autour de ce robot
 
+        color( (0,255,0) )
+        circle( *self.getRobot().get_centroid() , r = 22) # je dessine un rond bleu autour de ce robot
+
+        p = self.robot
+        
+        ad = np.array([0.,0.,0.,0.,0.,0.,0.,0.])
+        ad[0] = 1-self.getDistanceAtSensor(0)
+        ad[1] = 1-self.getDistanceAtSensor(1)
+        ad[2] = 1-self.getDistanceAtSensor(2)
+        ad[3] = 1-self.getDistanceAtSensor(3)
+        ad[4] = 1-self.getDistanceAtSensor(4)
+        ad[5] = 1-self.getDistanceAtSensor(5)
+        ad[6] = 1-self.getDistanceAtSensor(6)
+        ad[7] = 1-self.getDistanceAtSensor(7)
+        
+        at = np.array([0.,0.,0.,0.,0.,0.,0.,0.])
+        at[0] = self.getObjectTypeAtSensor(0)
+        at[1] = self.getObjectTypeAtSensor(1)
+        at[2] = self.getObjectTypeAtSensor(2)
+        at[3] = self.getObjectTypeAtSensor(3)
+        at[4] = self.getObjectTypeAtSensor(4)
+        at[5] = self.getObjectTypeAtSensor(5)
+        at[6] = self.getObjectTypeAtSensor(6)
+        at[7] = self.getObjectTypeAtSensor(7)
+        
+        comportement = 5
+        
+        
+        if comportement == 0:   # go straight forward
+            rotationValue = 0
+            translationValue = 1
+        
+        elif comportement == 1:   # go to walls
+            coefs = np.array([0., -0.5, -0.5, -0.7, 0.7, 0.5, 0.5, 0.])
+            rotationValue = ( ad * (at%2) * coefs ).sum()
+            translationValue = 1
+            
+        elif comportement == 2:   # avoid walls
+            coefs = np.array([0., 0.2, 0.5, 0.7, -0.7, -0.5, -0.2, 0.])
+            rotationValue = ( ad * (at%2) * coefs ).sum()
+            translationValue = 1
+            
+        elif comportement == 3:   # go to robots
+            coefs = np.array([3., -0.8, -0.6, -0.8, 0.8, 0.6, 0.8, -3.])
+            rotationValue = ( ad * (at//2) * coefs ).sum()
+            translationValue = 1
+            
+        elif comportement == 4:   # avoid robots
+            coefs = np.array([0., 0.2, 0.5, 0.7, -0.7, -0.5, -0.2, 0.])
+            rotationValue = (ad*(at//2)*coefs).sum()
+            translationValue = 1
+        
+        elif comportement == 5:   # avoid walls & robots
+            coefs = np.array([0., 0.2, 0.5, 0.7, -0.7, -0.5, -0.2, 0.])
+            rotationValue = (ad*at*coefs).sum()
+            translationValue = 1
+
+        if self.id == 0:
+            translationValue = min(0.8+random(), 1)
+            
+        self.setRotationValue( rotationValue )
+        self.setTranslationValue( translationValue ) # normalisé -1,+1
+
+
+
+
 
         # =============================================================================
         # Strategie
         # =============================================================================
-        import numpy as np
         
-        middleId = nbAgents // 2 - 0.5
-        ar_dist = np.array([self.getDistanceAtSensor(i) for i in range(len(SensorBelt))])
-        ar_dist = 1 - ar_dist
-        ar_type = np.array([self.getObjectTypeAtSensor(i) for i in range(len(SensorBelt))])
-        ar_info = np.array([self.getRobotInfoAtSensor(i)["id"] if ar_type[i]==2 else middleId for i in range(ar_type.size)])
-        ar_info = np.sign((ar_info - middleId)*(self.robot.numero - middleId))
+# =============================================================================
+#         middleId = nbAgents // 2 - 0.5
+#         ar_dist = np.array([self.getDistanceAtSensor(i) for i in range(len(SensorBelt))])
+#         ar_dist = 1 - ar_dist
+#         ar_type = np.array([self.getObjectTypeAtSensor(i) for i in range(len(SensorBelt))])
+#         ar_info = np.array([self.getRobotInfoAtSensor(i)["id"] if ar_type[i]==2 else middleId for i in range(ar_type.size)])
+#         ar_info = np.sign((ar_info - middleId)*(self.robot.numero - middleId))
+#         
+#         sensors = np.empty(2*ar_dist.size + 1)
+#         sensors[0] = 1
+#         sensors[1:(ar_dist.size+1)] = ar_dist * (ar_type % 2)
+#         sensors[(ar_dist.size+1):] = ar_dist * ar_info
+#         
+#         rot_val = np.dot(ar_dist[1:7] * (ar_type[1:7]!=0), [1, 1, 1, -1, -1, -1])
+#         
+#         #rot_val = np.dot(ar_dist[2:6], ar_type[2:6])
+#     
+#         self.setRotationValue(rot_val + 0.2*random()-0.1)
+#         self.setTranslationValue(1) # normalisé -1,+1
+#         
+#         if ar_type.sum() == 0:
+#             self.setRotationValue((random() > 0.5) * 2 - 1)
+# =============================================================================
+            
+# =============================================================================
+# Algo genetique
+# =============================================================================
+# =============================================================================
+             
+        #w = np.array([0., 1., 1., 1., -1., -1., -0.5, 0.5, -0.75, 1., 1., 1., -1., -1., -1., 0., 0., -0.25, 1., 1., -1., -1., -1., 0., 0.])
+#        w = np.array([ 0.  ,  1.  ,  1.  ,  1.  , -1.  , -1.  , -0.5 ,  0.5 , -0.8,  1.  ,  1.  ,  1.  , -1.  , -1.  , -1.  ,  0.  ,  0.  , -0.2,  1.  ,  1.  , -1.  , -1.  , -1.  ,  0.  ,  0.  ])
+#    
+#        N = len(SensorBelt)
+#        middleId = nbAgents // 2 - 0.5
+#        ar_dist = np.array([self.getDistanceAtSensor(i) for i in range(N)])
+#        ar_dist = 1 - ar_dist
+#        ar_type = np.array([self.getObjectTypeAtSensor(i) for i in range(N)])
+#        ar_info = np.array([self.getRobotInfoAtSensor(i)["id"] if ar_type[i]==2 else middleId for i in range(N)])
+#        ar_info = np.sign((ar_info - middleId)*(self.robot.numero - middleId))
+#        
+#        sensors = np.empty(3*N + 1)
+#        sensors[-1] = 1
+#        sensors[:N] = ar_dist * (ar_type % 2)
+#        sensors[N:(2*N)] = ar_dist * (ar_info==1)
+#        sensors[(2*N):(3*N)] = ar_dist * (ar_info==-1)
+#        
+#        self.setRotationValue(min(1, max(-1, w.dot(sensors) + 0.2*random() - 0.1)))
+#        self.setTranslationValue(1)
         
-        sensors = np.empty(2*ar_dist.size + 1)
-        sensors[0] = 1
-        sensors[1:(ar_dist.size+1)] = ar_dist * (ar_type % 2)
-        sensors[(ar_dist.size+1):] = ar_dist * ar_info
-        
-        rot_val = np.dot(ar_dist[1:7] * (ar_type[1:7]!=0), [1, 1, 1, -1, -1, -1])
-        
-        #rot_val = np.dot(ar_dist[2:6], ar_type[2:6])
+        #if ar_type.sum() == 0:
+        #    self.setRotationValue((random() > 0.5) * 2 - 1)
+# =============================================================================
     
-        self.setRotationValue(rot_val + 0.2*random()-0.1)
-        self.setTranslationValue(1) # normalisé -1,+1
-        
-        if ar_type.sum() == 0:
-            self.setRotationValue((random() > 0.5) * 2 - 1)
 #==============================================================================
 #         Évite les blocages en regardant la position
 #==============================================================================        
@@ -390,10 +490,127 @@ class AgentTypeB(object):
     teamname = "Equipe Test" # A modifier avec le nom de votre équipe
 
     def stepController(self):
-
-        color( (255,0,0) )
-        circle( *self.getRobot().get_centroid() , r = 22) # je dessine un rond bleu autour de ce robot
-
+        
+        p = self.robot
+        
+        def i_am_6_and_stuck():
+            if comportement!=6:
+                return False
+            
+            if ad.sum()<0.05:
+                return False
+            
+            s = (ad[1]+ad[2])*at[1]*at[2] + (ad[5]+ad[6])*at[5]*at[6]
+            
+            if s<1.15 or s>1.2:
+                return True
+            return False
+        
+        def a_mate_is_detected(lri, sensors=[2,3,4,5]):
+            for i in sensors:
+                if lri[i] is None:
+                    continue
+                if lri[i]['teamname'] == self.teamname:
+                    return True
+            return False
+        
+        def an_enemy_is_detected(lri, sensors=[1,2,3,4,5,6]):
+            for i in sensors:
+                if lri[i] is None:
+                    continue
+                if lri[i]['teamname'] != self.teamname:
+                    return True
+            return False
+        
+        
+        # récupe des sensors
+        ad = np.array([0.,0.,0.,0.,0.,0.,0.,0.])
+        at = np.array([0.,0.,0.,0.,0.,0.,0.,0.])
+        lri = [None]*8
+        for i in range(8):
+            ad[i] = 1 - self.getDistanceAtSensor(i)
+            at[i] = self.getObjectTypeAtSensor(i)	
+            lri[i] = self.getRobotInfoAtSensor(i)
+           
+        ### stratégie
+        
+        if self.id==0:
+            comportement = 6
+            #print(self.etat)
+            self.etat += 1
+            if self.etat > 2000:
+                comportement = 5
+            if self.etat > 3400:
+                self.etat = 0
+            if a_mate_is_detected(lri):
+                comportement = 4
+        else:
+            comportement = 5
+              
+        # changer de comportement si bot ennemi (le suivre)
+        if an_enemy_is_detected(lri):	# it's a bot
+            if not a_mate_is_detected(lri, sensors=[2,3,4,5]):
+                comportement = 3
+        
+        if self.id>=2:
+            comportement = 5
+            
+        # coloration
+        if comportement==3:
+            color( (169,169,169) )
+            circle( *self.getRobot().get_centroid() , r = 22)
+        elif comportement==4:
+            color( (250,250,250) )
+            circle( *self.getRobot().get_centroid() , r = 22)
+        elif comportement==5:
+            color( (238,130,238) )
+            circle( *self.getRobot().get_centroid() , r = 22)
+        elif comportement==6:
+            color( (255,255,0) )
+            circle( *self.getRobot().get_centroid() , r = 22)
+        
+        
+        ### comportements
+        if comportement == 0:   # go straight forward
+            rotationValue = 0
+            translationValue = 1
+        
+        elif comportement == 1:   # go to walls
+            coefs = np.array([0., -0.5, -0.5, -0.7, 0.7, 0.5, 0.5, 0.])
+            rotationValue = ( ad * (at%2) * coefs ).sum()
+            translationValue = 1
+            
+        elif comportement == 2:   # avoid walls
+            coefs = np.array([0., 0.2, 0.5, 0.7, -0.7, -0.5, -0.2, 0.])
+            rotationValue = ( ad * (at%2) * coefs ).sum()
+            translationValue = 1
+            
+        elif comportement == 3:   # follow robots
+            coefs = np.array([0., -0.8, -0.5, -0.7, 0.7, 0.5, 0.8, -0.])
+            rotationValue = ( ad * (at//2) * coefs ).sum()
+            translationValue = min(0.75+random(), 1)
+            
+        elif comportement == 4:   # avoid robots
+            coefs = np.array([0., 0.2, 0.5, 0.7, -0.7, -0.5, -0.2, 0.])
+            rotationValue = (ad*(at//2)*coefs).sum()
+            translationValue = -0.1
+        
+        elif comportement == 5:   # avoid walls & robots
+            coefs = np.array([0., 0.2, 0.5, 0.7, -0.8, -0.6, -0.3, 0.])
+            rotationValue = (ad*at*coefs).sum() +0.8*randint(-1,1)
+            translationValue = 1 #min(1 + randint(-3,30), 1) 
+        
+        elif comportement == 6:   # follow walls
+            ref = 0.3
+            dif = 0.23     #23
+            coefs = np.array([-0.3, ref, -(ref+dif), 0.4, -0.4, -(ref+dif), ref, 0.3])
+            rotationValue = ( ad * (at%2) * coefs ).sum()
+            translationValue = 1
+        
+        self.setRotationValue( rotationValue )
+        self.setTranslationValue( translationValue ) # normalisé -1,+1
+        
+        
 #==============================================================================
 #         distGauche = self.getDistanceAtSensor(2) # renvoi une valeur normalisée entre 0 et 1
 #         distDroite = self.getDistanceAtSensor(5) # renvoi une valeur normalisée entre 0 et 1
@@ -407,16 +624,84 @@ class AgentTypeB(object):
 # 
 #         self.setTranslationValue(1) # normalisé -1,+1
 #==============================================================================
-        import numpy as np   
-        ar_dist = np.array([self.getDistanceAtSensor(2), self.getDistanceAtSensor(3),  self.getDistanceAtSensor(4), self.getDistanceAtSensor(5)])
-        ar_dist = 1 - ar_dist
+# =============================================================================
+#         import numpy as np   
+#         ar_dist = np.array([self.getDistanceAtSensor(2), self.getDistanceAtSensor(3),  self.getDistanceAtSensor(4), self.getDistanceAtSensor(5)])
+#         ar_dist = 1 - ar_dist
+#         
+#         ar_type = np.array([self.getObjectTypeAtSensor(2), self.getObjectTypeAtSensor(3), self.getObjectTypeAtSensor(4), self.getObjectTypeAtSensor(5)])
+# 
+#         rot_val = np.dot(ar_dist, ar_type)
+#     
+#         self.setRotationValue(-rot_val + 0.2*random()-0.1)
+#         self.setTranslationValue(1) # normalisé -1,+1
+# =============================================================================
+# =============================================================================
+#         
+#         middleId = nbAgents // 2 - 0.5
+#         ar_dist = np.array([self.getDistanceAtSensor(i) for i in range(len(SensorBelt))])
+#         ar_dist = 1 - ar_dist
+#         ar_type = np.array([self.getObjectTypeAtSensor(i) for i in range(len(SensorBelt))])
+#         ar_info = np.array([self.getRobotInfoAtSensor(i)["id"] if ar_type[i]==2 else middleId for i in range(ar_type.size)])
+#         ar_info = np.sign((ar_info - middleId)*(self.robot.numero - middleId))
+#         
+#         sensors = np.empty(2*ar_dist.size + 1)
+#         sensors[0] = 1
+#         sensors[1:(ar_dist.size+1)] = ar_dist * (ar_type % 2)
+#         sensors[(ar_dist.size+1):] = ar_dist * ar_info
+#         
+#         rot_val = np.dot(ar_dist[1:7] * (ar_type[1:7]!=0), [1, 1, 1, -1, -1, -1])
+#         
+#         #rot_val = np.dot(ar_dist[2:6], ar_type[2:6])
+#     
+#         self.setRotationValue(rot_val + 0.2*random()-0.1)
+#         self.setTranslationValue(1) # normalisé -1,+1
+#         
+#         if ar_type.sum() == 0:
+#             self.setRotationValue((random() > 0.5) * 2 - 1)
+#             
+# =============================================================================
         
-        ar_type = np.array([self.getObjectTypeAtSensor(2), self.getObjectTypeAtSensor(3), self.getObjectTypeAtSensor(4), self.getObjectTypeAtSensor(5)])
-
-        rot_val = np.dot(ar_dist, ar_type)
-    
-        self.setRotationValue(-rot_val + 0.2*random()-0.1)
-        self.setTranslationValue(1) # normalisé -1,+1
+#==============================================================================
+#         Évite les blocages en regardant la position
+#==============================================================================        
+# =============================================================================
+#         def stateToVec(s):
+#             s, x = divmod(s, 10**5)
+#             s, y = divmod(s, 10**5)
+#             s, cpt = divmod(s, 10**2)
+#             return x, y, cpt, s
+#             
+#         def vecToState(x, y, cpt, mode):
+#             s = (10**12)*mode + (10**10)*cpt + (10**5)*y + x
+#             return s
+#         
+#         x0, y0, cpt, mode = stateToVec(self.etat)
+#         x, y = self.robot.get_centroid()
+#         x = int(10*x)
+#         y = int(10*y)
+#         
+#         if mode==0:
+#             if abs(x - x0) + abs(y - y0) <= 2:
+#                 if cpt >= 60:
+#                     mode = 1
+#                 else:
+#                     cpt += 1
+#             else:
+#                 pass
+#         else:
+#             if cpt <= 0:
+#                 mode = 0
+#             else:
+#                 cpt -= 1
+#                 self.setRotationValue((random() > 0.5)*2 - 1)
+#                 self.setTranslationValue(-1)
+#                 
+#         x0 = x
+#         y0 = y
+#         self.etat = vecToState(x0, y0, cpt, mode)
+# 
+# =============================================================================
         
 		# monitoring (optionnel - changer la valeur de verbose)
         if verbose == True:
@@ -427,7 +712,6 @@ class AgentTypeB(object):
 	            print ("\t\tType      :",self.getObjectTypeAtSensor(i)) # 0: nothing, 1: wall/border, 2: robot
 	            print ("\t\tRobot info:",self.getRobotInfoAtSensor(i)) # dict("id","centroid(x,y)","orientation") (if not a robot: returns None and display a warning)
 
-        return
 
     # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -540,6 +824,15 @@ def setupArena2():
     for i in range(8,16):
         addObstacle(row=i,col=8)
 
+def setupArena3():
+    w = screen_width//32
+    h = screen_height//32
+    for i in range(h):
+        if i==h//4:
+            continue
+        addObstacle(row=i,col=w//2)
+        addObstacle(row=i,col=w//2-1)
+
 def updateSensors():
     global sensors 
     # throw_rays...(...) : appel couteux (une fois par itération du simulateur). permet de mettre à jour le masque de collision pour tous les robots.
@@ -635,8 +928,10 @@ if arena == 0:
     setupArena0()
 elif arena == 1:
     setupArena1()
-else:
+elif arena == 2:
     setupArena2()
+else:
+    setupArena3()
 
 setupAgents()
 
