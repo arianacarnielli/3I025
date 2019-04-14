@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# 
+#  python -m pip install pygame
 #
 # multirobot_teamwars.py
-# Contact (ce fichier uniquement): nicolas.bredeche(at)upmc.fr
+# Contact (ce fichier uniquement): nicolas.bredeche(type_array)upmc.fr
 # Ce code utilise pySpriteWorld, développé par Yann Chevaleyre (U. Paris 13)
 #
 # Historique:
@@ -10,6 +12,7 @@
 #   2018-03-26__23:06 - mise à jour de l'énoncé du projet
 #   2018-03-27__20:51 - reecriture de la fonction step(.)
 # 	2018-03-28__10:00 - renommage de la fonction step(.) en stepController(.), refactoring
+#   2019-04-02__11:42 - passage Python 3.x
 #
 # Description:
 #   Template pour projet multi-robots "MULTIROBOT WARS"
@@ -73,7 +76,7 @@
 #       Bon courage!
 # 
 # Dépendances:
-#   Python 2.x
+#   Python 3.x
 #   Matplotlib
 #   Pygame
 #
@@ -89,6 +92,7 @@ from random import random, shuffle, randint
 import time
 import sys
 import atexit
+import numpy as np
 
 
 '''''''''''''''''''''''''''''
@@ -97,10 +101,11 @@ import atexit
 '''''''''''''''''''''''''''''
 '''''''''''''''''''''''''''''
 
+
 game = Game()
 agents = []
 
-arena = 0
+arena = 3
 
 nbAgents = 8 # doit être pair et inférieur a 32
 maxSensorDistance = 30              # utilisé localement.
@@ -117,13 +122,13 @@ frameskip = 4   # 0: no-skip. >1: skip n-1 frames
 verbose = False # permet d'afficher le suivi des agents (informations dans la console)
 
 occupancyGrid = []
-for y in range(screen_height/16):
+for y in range(screen_height//16):
     l = []
-    for x in range(screen_width/16):
+    for x in range(screen_width//16):
         l.append("_")
     occupancyGrid.append(l)
 
-
+iteration = 0
 
 '''''''''''''''''''''''''''''
 '''''''''''''''''''''''''''''
@@ -146,7 +151,7 @@ class AgentTypeA(object):
     def __init__(self,robot):
         self.id = AgentTypeA.agentIdCounter
         AgentTypeA.agentIdCounter = AgentTypeA.agentIdCounter + 1
-        #print "robot #", self.id, " -- init"
+        #print ("robot #", self.id, " -- init")
         self.robot = robot
         self.robot.teamname = self.teamname
 
@@ -169,37 +174,156 @@ class AgentTypeA(object):
     # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-    teamname = "Equipe Alpha" # A modifier avec le nom de votre équipe
+    teamname = "AAAH" # A modifier avec le nom de votre équipe
 
-    def stepController(self):
-    
+    def stepController(self):    
     	# cette méthode illustre l'ensemble des fonctions et informations que vous avez le droit d'utiliser.
     	# tout votre code doit tenir dans cette méthode. La seule mémoire autorisée est la variable self.etat
     	# (c'est un entier).
 
         color( (0,255,0) )
-        circle( *self.getRobot().get_centroid() , r = 22) # je dessine un rond bleu autour de ce robot
+        circle( *self.getRobot().get_centroid() , r = 22) # je dessine un rond vert autour de ce robot
 
-        distGauche = self.getDistanceAtSensor(2) # renvoi une valeur normalisée entre 0 et 1
-        distDroite = self.getDistanceAtSensor(5) # renvoi une valeur normalisée entre 0 et 1
+
+        # =============================================================================
+        # Strategie
+        # =============================================================================
         
-        if distGauche < distDroite:
-            self.setRotationValue( +1 )
-        elif distGauche > distDroite:
-            self.setRotationValue( -1 )
+# =============================================================================
+#         middleId = nbAgents // 2 - 0.5
+#         ar_dist = np.array([self.getDistanceAtSensor(i) for i in range(len(SensorBelt))])
+#         ar_dist = 1 - ar_dist
+#         ar_type = np.array([self.getObjectTypeAtSensor(i) for i in range(len(SensorBelt))])
+#         ar_info = np.array([self.getRobotInfoAtSensor(i)["id"] if ar_type[i]==2 else middleId for i in range(ar_type.size)])
+#         ar_info = np.sign((ar_info - middleId)*(self.robot.numero - middleId))
+#         
+#         sensors = np.empty(2*ar_dist.size + 1)
+#         sensors[0] = 1
+#         sensors[1:(ar_dist.size+1)] = ar_dist * (ar_type % 2)
+#         sensors[(ar_dist.size+1):] = ar_dist * ar_info
+#         
+#         rot_val = np.dot(ar_dist[1:7] * (ar_type[1:7]!=0), [1, 1, 1, -1, -1, -1])
+#         
+#         #rot_val = np.dot(ar_dist[2:6], ar_type[2:6])
+#     
+#         self.setRotationValue(rot_val + 0.2*random()-0.1)
+#         self.setTranslationValue(1) # normalisé -1,+1
+#         
+#         if ar_type.sum() == 0:
+#             self.setRotationValue((random() > 0.5) * 2 - 1)
+# =============================================================================
+            
+# =============================================================================
+# Algo genetique
+# =============================================================================
+# =============================================================================
+             
+        w = np.array([0., 1., 1., 1., -1., -1., -0.5, 0.5, -0.75, 1., 1., 1., -1., -1., -1., 0., 0., -0.25, 1., 1., -1., -1., -1., 0., 0.])
+        #w = np.array([ 0.  ,  1.  ,  1.  ,  1.  , -1.  , -1.  , -0.5 ,  0.5 , -0.8,  1.  ,  1.  ,  1.  , -1.  , -1.  , -1.  ,  0.  ,  0.  , -0.2,  1.  ,  1.  , -1.  , -1.  , -1.  ,  0.  ,  0.  ])
+    
+        N = len(SensorBelt)
+        middleId = nbAgents // 2 - 0.5
+        ar_dist = np.array([self.getDistanceAtSensor(i) for i in range(N)])
+        ar_dist = 1 - ar_dist
+        ar_type = np.array([self.getObjectTypeAtSensor(i) for i in range(N)])
+        ar_info = np.array([self.getRobotInfoAtSensor(i)["id"] if ar_type[i]==2 else middleId for i in range(N)])
+        ar_info = np.sign((ar_info - middleId)*(self.robot.numero - middleId))
+        
+        sensors = np.empty(3*N + 1)
+        sensors[-1] = 1
+        sensors[:N] = ar_dist * (ar_type % 2)
+        sensors[N:(2*N)] = ar_dist * (ar_info==1)
+        sensors[(2*N):(3*N)] = ar_dist * (ar_info==-1)
+        
+        self.setRotationValue(min(1, max(-1, w.dot(sensors) + 0.2*random() - 0.1)))
+        self.setTranslationValue(1)
+        
+        if ar_type.sum() == 0:
+            self.setRotationValue((random() > 0.5) * 2 - 1)
+# =============================================================================
+    
+#==============================================================================
+#         Évite les blocages en regardant la position
+#==============================================================================        
+        def stateToVec(s):
+            s, x = divmod(s, 10**5)
+            s, y = divmod(s, 10**5)
+            s, cpt = divmod(s, 10**2)
+            return x, y, cpt, s
+            
+        def vecToState(x, y, cpt, mode):
+            s = (10**12)*mode + (10**10)*cpt + (10**5)*y + x
+            return s
+        
+        x0, y0, cpt, mode = stateToVec(self.etat)
+        x, y = self.robot.get_centroid()
+        x = int(10*x)
+        y = int(10*y)
+        
+        if mode==0:
+            if abs(x - x0) + abs(y - y0) <= 2:
+                if cpt >= 60:
+                    mode = 1
+                else:
+                    cpt += 1
+            else:
+                pass
         else:
-            self.setRotationValue( 0 )
-
-        self.setTranslationValue(1) # normalisé -1,+1
+            if cpt <= 0:
+                mode = 0
+            else:
+                cpt -= 1
+                self.setRotationValue((random() > 0.5)*2 - 1)
+                self.setTranslationValue(-1)
+                
+        x0 = x
+        y0 = y
+        self.etat = vecToState(x0, y0, cpt, mode)
+#==============================================================================
+#         Évite les blocages en regardant les capteurs        
+#==============================================================================
+#==============================================================================
+#         def stateToVec(s, bits = 6, size = 8):
+#             vec = np.empty(size, dtype=int)
+#             for i in range(size-1, -1, -1):
+#                 s, vec[i] = divmod(s, 2**bits)
+#             return vec, s
+#         
+#         def vecToState(vec, mode, bits = 6):
+#             gambiarra = 2**100
+#             s = gambiarra + mode
+#             for i in range(vec.size):
+#                 s = (s << bits) + (vec[i] % (2**bits))
+#                 gambiarra = (gambiarra << bits)
+#             return s - gambiarra
+#         
+#         vec, mode = stateToVec(self.etat)
+#         #print(vec, mode)
+#         if mode == 1:
+#             if np.all(vec == 0):
+#                 mode = 0
+#             else:
+#                 vec -= 1
+#                 self.setRotationValue((random() * 2) - 1)
+#                 self.setTranslationValue(-1)
+#         else:
+#             if (vec >= 60).sum() >= 2:
+#                 mode = 1
+#                 vec[:] = 60
+#             else:
+#                 vec[ar_type != 0] += 1
+#         #print(vec, mode)
+#         self.etat = vecToState(np.minimum(vec, 60), mode)
+#==============================================================================
         
 		# monitoring (optionnel - changer la valeur de verbose)
         if verbose == True:
-	        print "Robot #"+str(self.id)+" [teamname:\""+str(self.teamname)+"\"] [variable mémoire = "+str(self.etat)+"] :"
+	        print ("Robot #"+str(self.id)+" [teamname:\""+str(self.teamname)+"\"] [variable mémoire = "+str(self.etat)+"] :")
 	        for i in range(len(SensorBelt)):
-	            print "\tSenseur #"+str(i)+" (angle: "+ str(SensorBelt[i])+"°)"
-	            print "\t\tDistance  :",self.getDistanceAtSensor(i)
-	            print "\t\tType      :",self.getObjectTypeAtSensor(i) # 0: rien, 1: mur ou bord, 2: robot
-	            print "\t\tRobot info:",self.getRobotInfoAtSensor(i) # dict("id","centroid(x,y)","orientation") (si pas de robot: renvoi "None" et affiche un avertissement dans la console
+	            print ("\tSenseur #"+str(i)+" (angle: "+ str(SensorBelt[i])+"°)")
+	            print ("\t\tDistance  :",self.getDistanceAtSensor(i))
+	            print ("\t\tType      :",self.getObjectTypeAtSensor(i)) # 0: rien, 1: mur ou bord, 2: robot
+	            print ("\t\tRobot info:",self.getRobotInfoAtSensor(i)) # dict("id","centroid(x,y)","orientation") (si pas de robot: renvoi "None" et affiche un avertissement dans la console
 
         return
 
@@ -233,15 +357,15 @@ class AgentTypeA(object):
             info = {'id': otherRobot.numero, 'centroid': otherRobot.get_centroid(), 'orientation': otherRobot.orientation(), 'teamname': otherRobot.teamname }
             return info
         else:
-            #print "[WARNING] getPlayerInfoAtSensor(.): not a robot!"
+            #print ("[WARNING] getPlayerInfoAtSensor(.): not a robot!")
             return None
 
     def setTranslationValue(self,value):
         if value > 1:
-            print "[WARNING] translation value not in [-1,+1]. Normalizing."
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = maxTranslationSpeed
         elif value < -1:
-            print "[WARNING] translation value not in [-1,+1]. Normalizing."
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = -maxTranslationSpeed
         else:
             value = value * maxTranslationSpeed
@@ -249,10 +373,10 @@ class AgentTypeA(object):
 
     def setRotationValue(self,value):
         if value > 1:
-            print "[WARNING] translation value not in [-1,+1]. Normalizing."
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = maxRotationSpeed
         elif value < -1:
-            print "[WARNING] translation value not in [-1,+1]. Normalizing."
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = -maxRotationSpeed
         else:
             value = value * maxRotationSpeed
@@ -279,7 +403,7 @@ class AgentTypeB(object):
     def __init__(self,robot):
         self.id = AgentTypeB.agentIdCounter
         AgentTypeB.agentIdCounter = AgentTypeB.agentIdCounter + 1
-        #print "robot #", self.id, " -- init"
+        #print ("robot #", self.id, " -- init")
         self.robot = robot
         self.robot.teamname = self.teamname
 
@@ -298,33 +422,179 @@ class AgentTypeB(object):
     # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-    teamname = "Equipe Test" # A modifier avec le nom de votre équipe
+    teamname = "Dave" # A modifier avec le nom de votre équipe
 
     def stepController(self):
-
-        color( (0,0,255) )
-        circle( *self.getRobot().get_centroid() , r = 22) # je dessine un rond bleu autour de ce robot
-
-        distGauche = self.getDistanceAtSensor(2) # renvoi une valeur normalisée entre 0 et 1
-        distDroite = self.getDistanceAtSensor(5) # renvoi une valeur normalisée entre 0 et 1
         
-        if distGauche < distDroite:
-            self.setRotationValue( +1 )
-        elif distGauche > distDroite:
-            self.setRotationValue( -1 )
+        
+        def a_mate_is_detected(bot_info_list, sensors=[2,3,4,5]):
+            for i in sensors:
+                if bot_info_list[i] is None:
+                    continue
+                if bot_info_list[i]['teamname'] == self.teamname:
+                    return True
+            return False
+        
+        def an_enemy_is_detected(bot_info_list, sensors=[1,2,3,4,5,6]):
+            for i in sensors:
+                if bot_info_list[i] is None:
+                    continue
+                if bot_info_list[i]['teamname'] != self.teamname:
+                    return True
+            return False
+        
+        def stateToVec(s):
+            s, x = divmod(s, 10**5)
+            s, y = divmod(s, 10**5)
+            s, cpt = divmod(s, 10**2)
+            s, mode = divmod(s, 10)
+            return x, y, cpt, mode, s
+        
+        def vecToState(x, y, cpt, mode, comp):
+            s = (10**13)*comp + (10**12)*mode + (10**10)*cpt + (10**5)*y + x
+            return s
+        
+        def get_comp_cpt_from_etat():
+            x, y, cpt, mode, comp = stateToVec(self.etat)
+            return comp
+        
+        
+        # récupe des sensors
+        dist_array = np.array([0.,0.,0.,0.,0.,0.,0.,0.])
+        type_array = np.array([0.,0.,0.,0.,0.,0.,0.,0.])
+        bot_info_list = [None]*8
+        for i in range(8):
+            dist_array[i] = 1 - self.getDistanceAtSensor(i)
+            type_array[i] = self.getObjectTypeAtSensor(i)	
+            bot_info_list[i] = self.getRobotInfoAtSensor(i)
+   
+        ### stratégie
+        
+        if self.id==0:
+            comportement = 6
+            comp_cpt = get_comp_cpt_from_etat()
+            if comp_cpt > 2200:
+                comportement = 5
+            if comp_cpt > 5000:
+                comportement = 6
+            if a_mate_is_detected(bot_info_list):
+                comportement = 4
         else:
-            self.setRotationValue( 0 )
+            comportement = 5
+              
+        # changer de comportement si bot ennemi (le suivre)
+        if an_enemy_is_detected(bot_info_list):	# it's a bot
+            if not a_mate_is_detected(bot_info_list, sensors=[2,3,4,5]):
+                comportement = 3
+        
+        if self.id==2:
+            comportement = 5
+        
+        
+            
+        # coloration
+        if comportement==3:
+            color( (169,169,169) )
+            circle( *self.getRobot().get_centroid() , r = 22)
+        elif comportement==4:
+            color( (250,250,250) )
+            circle( *self.getRobot().get_centroid() , r = 22)
+        elif comportement==5:
+            color( (238,130,238) )
+            circle( *self.getRobot().get_centroid() , r = 22)
+        elif comportement==6:
+            color( (255,255,0) )
+            circle( *self.getRobot().get_centroid() , r = 22)
+        
+        
+        ### comportements
+        if comportement == 0:   # go straight forward
+            rotationValue = 0
+            translationValue = 1
+        
+        elif comportement == 1:   # go to walls
+            coefs = np.array([0., -0.5, -0.5, -0.7, 0.7, 0.5, 0.5, 0.])
+            rotationValue = ( dist_array * (type_array%2) * coefs ).sum()
+            translationValue = 1
+            
+        elif comportement == 2:   # avoid walls
+            coefs = np.array([0., 0.2, 0.5, 0.7, -0.7, -0.5, -0.2, 0.])
+            rotationValue = ( dist_array * (type_array%2) * coefs ).sum()
+            translationValue = 1
+            
+        elif comportement == 3:   # follow robots
+            coefs = np.array([0., -0.9, -0.6, -0.7, 0.7, 0.6, 0.9, 0.])
+            rotationValue = (dist_array * (type_array//2) * coefs ).sum()
+            #translationValue = min(0.8+random(), 1)
+            translationValue = min(0.8+random(), 1)
+            
+        elif comportement == 4:   # avoid robots
+            coefs = np.array([0., 0.2, 0.5, 0.7, -0.7, -0.5, -0.2, 0.])
+            rotationValue = 0
+            translationValue = -0.2
+        
+        elif comportement == 5:   # avoid walls & robots
+            coefs = np.array([0., 0.2, 0.5, 0.7, -0.8, -0.6, -0.3, 0.])
+            rotationValue = (dist_array*type_array*coefs).sum() +0.3*randint(-1,1)
+            translationValue = 1
+        
+        elif comportement == 6:   # follow walls
+            ref = 0.3
+            dif = 0.23     #23
+            coefs = np.array([-0.3, ref, -(ref+dif), 0.4, -0.4, -(ref+dif), ref, 0.3])
+            rotationValue = ( dist_array * (type_array%2) * coefs ).sum()
+            translationValue = 1
 
-        self.setTranslationValue(1) # normalisé -1,+1
+        self.setRotationValue( rotationValue )
+        self.setTranslationValue( translationValue )
+        
+        
+#==============================================================================
+#         Évite les blocages en regardant la position
+#==============================================================================        
+        x0, y0, cpt, mode, comp_cpt = stateToVec(self.etat)
+        x, y = self.robot.get_centroid()
+        x = int(10*x)
+        y = int(10*y)
+        
+        if mode==0:
+            if abs(x - x0) + abs(y - y0) <= 2:
+                if cpt >= 36:
+                    mode = 1
+                    cpt = 30
+                else:
+                    cpt += 1
+            else:
+                cpt = 0
+                pass
+        else:
+            if cpt <= 0:
+                mode = 0
+            else:
+                cpt -= 1
+                color( (255,0,0) )
+                circle( *self.getRobot().get_centroid() , r = 22)
+                rotationValue = randint(-1,0)
+                translationValue = -0.8
+                if comportement==3:
+                    rotationValue=0
+                    translationValue=-0.3
+                self.setRotationValue(rotationValue)
+                self.setTranslationValue(translationValue)
+                
+        x0 = x
+        y0 = y
+        self.etat = vecToState(x0, y0, cpt, mode, comp_cpt+1)
+        
         
 		# monitoring (optionnel - changer la valeur de verbose)
         if verbose == True:
-	        print "Robot #"+str(self.id)+" [teamname:\""+str(self.teamname)+"\"] [variable mémoire = "+str(self.etat)+"] :"
+	        print ("Robot #"+str(self.id)+" [teamname:\""+str(self.teamname)+"\"] [variable mémoire = "+str(self.etat)+"] :")
 	        for i in range(8):
-	            print "\tSenseur #"+str(i)+" (angle: "+ str(SensorBelt[i])+"°)"
-	            print "\t\tDistance  :",self.getDistanceAtSensor(i)
-	            print "\t\tType      :",self.getObjectTypeAtSensor(i) # 0: nothing, 1: wall/border, 2: robot
-	            print "\t\tRobot info:",self.getRobotInfoAtSensor(i) # dict("id","centroid(x,y)","orientation") (if not a robot: returns None and display a warning)
+	            print ("\tSenseur #"+str(i)+" (angle: "+ str(SensorBelt[i])+"°)")
+	            print ("\t\tDistance  :",self.getDistanceAtSensor(i))
+	            print ("\t\tType      :",self.getObjectTypeAtSensor(i)) # 0: nothing, 1: wall/border, 2: robot
+	            print ("\t\tRobot info:",self.getRobotInfoAtSensor(i)) # dict("id","centroid(x,y)","orientation") (if not a robot: returns None and display a warning)
 
         return
 
@@ -358,16 +628,16 @@ class AgentTypeB(object):
             info = {'id': otherRobot.numero, 'centroid': otherRobot.get_centroid(), 'orientation': otherRobot.orientation(), 'teamname': otherRobot.teamname }
             return info
         else:
-            #print "[WARNING] getPlayerInfoAtSensor(.): not a robot!"
+            #print ("[WARNING] getPlayerInfoAtSensor(.): not a robot!")
             return None
 
 
     def setTranslationValue(self,value):
         if value > 1:
-            print "[WARNING] translation value not in [-1,+1]. Normalizing."
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = maxTranslationSpeed
         elif value < -1:
-            print "[WARNING] translation value not in [-1,+1]. Normalizing."
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = -maxTranslationSpeed
         else:
             value = value * maxTranslationSpeed
@@ -375,10 +645,10 @@ class AgentTypeB(object):
 
     def setRotationValue(self,value):
         if value > 1:
-            print "[WARNING] translation value not in [-1,+1]. Normalizing."
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = maxRotationSpeed
         elif value < -1:
-            print "[WARNING] translation value not in [-1,+1]. Normalizing."
+            #print ("[WARNING] translation value not in [-1,+1]. Normalizing.")
             value = -maxRotationSpeed
         else:
             value = value * maxRotationSpeed
@@ -397,7 +667,7 @@ def setupAgents():
 
     # Make agents
 
-    nbAgentsTypeA = nbAgentsTypeB = nbAgents / 2
+    nbAgentsTypeA = nbAgentsTypeB = nbAgents // 2
     nbAgentsCreated = 0
 
     for i in range(nbAgentsTypeA):
@@ -439,6 +709,18 @@ def setupArena2():
     for i in range(8,16):
         addObstacle(row=i,col=8)
 
+def setupArena3():
+    w = screen_width//32
+    h = screen_height//32
+    for i in range(h):
+        if i==h//4:
+            continue
+        addObstacle(row=i,col=w//2)
+        addObstacle(row=i,col=w//2-1)
+    
+    
+    
+
 def updateSensors():
     global sensors 
     # throw_rays...(...) : appel couteux (une fois par itération du simulateur). permet de mettre à jour le masque de collision pour tous les robots.
@@ -456,7 +738,7 @@ def stepWorld():
         agents[shuffledIndexes[i]].step()
         # met à jour la grille d'occupation
         coord = agents[shuffledIndexes[i]].getRobot().get_centroid()
-        occupancyGrid[int(coord[0])/16][int(coord[1])/16] = agents[shuffledIndexes[i]].getType() # first come, first served
+        occupancyGrid[int(coord[0])//16][int(coord[1])//16] = agents[shuffledIndexes[i]].getType() # first come, first served
     return
 
 
@@ -480,8 +762,8 @@ def displayOccupancyGrid():
     global iteration
     nbA = nbB = nothing = 0
 
-    for y in range(screen_height/16):
-        for x in range(screen_width/16):
+    for y in range(screen_height//16):
+        for x in range(screen_width//16):
             sys.stdout.write(occupancyGrid[x][y])
             if occupancyGrid[x][y] == "A":
                 nbA = nbA+1
@@ -508,15 +790,15 @@ def displayOccupancyGrid():
 
 def onExit():
     ret = displayOccupancyGrid()
-    print "\n\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
+    print ("\n\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
     if ret[0] > ret[1]:
-        print "Robots type A (\"" + str(AgentTypeA.teamname) + "\") wins!"
+        print ("Robots type A (\"" + str(AgentTypeA.teamname) + "\") wins!")
     elif ret[0] < ret[1]:
-        print "Robots type B (\"" + str(AgentTypeB.teamname) + "\") wins!"
+        print ("Robots type B (\"" + str(AgentTypeB.teamname) + "\") wins!")
     else: 
-        print "Nobody wins!"
-    print "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n"
-    print "\n[Simulation::stop]"
+        print ("Nobody wins!")
+    print ("=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n")
+    print ("\n[Simulation::stop]")
 
 
 '''''''''''''''''''''''''''''
@@ -534,8 +816,10 @@ if arena == 0:
     setupArena0()
 elif arena == 1:
     setupArena1()
-else:
+elif arena == 2:
     setupArena2()
+else:
+    setupArena3()
 
 setupAgents()
 game.mainiteration()

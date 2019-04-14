@@ -40,7 +40,7 @@ class AlgoGenetique:
     def sendWToSimul(wRow, arena, filename = "in.txt"):
         with open(filename, "w") as file:
             file.write("{:d}\n".format(arena))
-            string = " ".join(["{:.1f}".format(e) for e in wRow])
+            string = " ".join(["{:.4f}".format(e) for e in wRow])
             file.write(string)
     
     def getResultFromSimul(filename = "out.txt"):
