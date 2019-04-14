@@ -41,7 +41,7 @@
 #   - pour obtenir un tirage issue d'une distribution normal, il faut utiliser la fonction gauss. Exemple: random.gauss(0,1) <=> N(0,1) (i.e. tirage d'une distribution normale centrée sur 0 et d'écart type 1)
 
 from robosim import *
-from random import random, shuffle, randint, gauss
+from random import random, shuffle, randint, gauss, sample
 import math
 import time
 import sys
@@ -168,25 +168,28 @@ class Agent(object):
         translation = 0
         rotation = 0
         
-        #sensorMinus80 = self.getDistanceAtSensor(1)
+        sensorMinus80 = self.getDistanceAtSensor(1)
         sensorMinus40 = self.getDistanceAtSensor(2)
         sensorMinus20 = self.getDistanceAtSensor(3)
         sensorPlus20 = self.getDistanceAtSensor(4)
         sensorPlus40 = self.getDistanceAtSensor(5)
-        #sensorPlus80 = self.getDistanceAtSensor(6)
+        sensorPlus80 = self.getDistanceAtSensor(6)
 
-        if len(self.params) != 10: # vérifie que le nombre de paramètres donné est correct
+        if len(self.params) != 14: # vérifie que le nombre de paramètres donné est correct
             print ("[ERROR] number of parameters is incorrect. Exiting.")
             exit()
 
         # Perceptron: a linear combination of sensory inputs with weights (=parameters). Use an additional parameters as a bias, and apply hyperbolic tangeant to ensure result is in [-1,+1]
-        translation =  math.tanh( sensorMinus40 * self.params[0] + sensorMinus20 * self.params[1] + sensorPlus20 * self.params[2] + sensorPlus40 * self.params[3] + self.params[4] ) 
-        rotation =  math.tanh( sensorMinus40 * self.params[5] + sensorMinus20 * self.params[6] + sensorPlus20 * self.params[7] + sensorPlus40 * self.params[8] + self.params[9] )
+        #translation =  math.tanh( sensorMinus40 * self.params[0] + sensorMinus20 * self.params[1] + sensorPlus20 * self.params[2] + sensorPlus40 * self.params[3] + self.params[4] ) 
+        #rotation =  math.tanh( sensorMinus40 * self.params[5] + sensorMinus20 * self.params[6] + sensorPlus20 * self.params[7] + sensorPlus40 * self.params[8] + self.params[9] )
+        
+        translation =  math.tanh(sensorMinus80 *self.params[0] + sensorMinus40 * self.params[1] + sensorMinus20 * self.params[2] + sensorPlus20 * self.params[3] + sensorPlus40 * self.params[4] + sensorPlus80*self.params[5] + self.params[6]) 
+        rotation =  math.tanh(sensorMinus80 *self.params[7] + sensorMinus40 * self.params[8] + sensorMinus20 * self.params[9] + sensorPlus20 * self.params[10] + sensorPlus40 * self.params[11] + sensorMinus80 *self.params[12] + self.params[13] )
 
         #print ("robot #", self.id, "[r =",rotation," - t =",translation,"]")
 
-        self.setRotationValue( rotation )
-        self.setTranslationValue( translation )
+        self.setRotationValue(rotation)
+        self.setTranslationValue(translation)
 
         return
 
@@ -290,7 +293,7 @@ def updateSensors():
     
 
 def stepWorld():
-
+    efface()
     updateSensors()
 
     # chaque agent se met à jour. L'ordre de mise à jour change à chaque fois (permet d'éviter des effets d'ordre).
@@ -352,6 +355,8 @@ for evaluationIt in range(maxEvaluations):
     game.mainiteration()
 '''
 
+
+
 print ("Optimizing.")
 
 game.frameskip = 200 # affichage à vitesse (très) rapide -- Benchmark (2018/3/28): macbook pro 3.1Ghz 12" core i7 'early 2015': 1250 updates/sec 
@@ -360,45 +365,81 @@ bestFitness = 0 # init with worst value
 bestParams = []
 bestEvalIt = 0
 
-maxEvaluations = 100 # budget en terme de nombre de robots évalués au total
+maxEvaluations = 500 # budget en terme de nombre de robots évalués au total
 maxIterations = 200 # temps passé pour évaluer _un_ robot
 nbReevaluations = 4
-genomeSize = 10
+genomeSize = 14
 
-for evaluationIt in range(maxEvaluations):
 
-    print ("Evaluation #"), evaluationIt
+def creerPopInitial(nbPopulation, nbFeatures):
+    population = []
+    for i in range (nbPopulation): 
+        population.append([randint(-1,+1) for i in range(nbFeatures)])
+    return population
 
-    # genere un nouveau jeu de paramètres
-    params = []
-    for i in range(genomeSize):  # taille du genome 
-        params.append(randint(-1,+1)) # construit un genome composé de N valeurs -1, 0 ou +1
+def mutationSimple(joueur, nbFeatures, mutation):
+    for i in range(nbFeatures):
+        if random() < mutation:
+            new = randint(-1,+1)
+            while new == joueur[i]:
+                new = randint(-1,+1)
+            joueur[i] = new
+    return joueur
 
+def tournoi (population, k, fitness):        
+    tournoi = sample(list(range(len(population))), k)
+    dico_fit = {fitness[i] : i for i in range(len(population))}
+    fitness_sort = [fitness[tournoi[i]] for i in range(len(tournoi))]
+    fitness_sort = sorted(fitness_sort)
+    return population[dico_fit[fitness_sort[0]]]
+
+
+nbGen = maxEvaluations//10
+  
+
+k = 8
+mutation = 1/genomeSize
+pop = creerPopInitial(10, 14)    
+tab_fitness = [0]*len(pop)
+bestFitness = 0
+bestJoueur = []
+bestGen = 0
+
+for generation in range(nbGen):
+    for i in range(len(pop)):
     # evalue les parametres
-    fitness = 0
-    for i in range (nbReevaluations): # N évaluations indépendantes
-        fitness += agents[0].evaluate(params)
+        joueur = pop[i]
+        tab_fitness[i] = agents[0].evaluate(joueur)
+        if bestFitness < tab_fitness[i]:
+            bestFitness = tab_fitness[i]
+            bestJoueur = joueur
+            bestGen = generation
+            
+        print (str(generation) +", "+  str(tab_fitness[i]) +", "+ str(bestFitness))
+    new_pop = []
+    for i in range(len(pop)):
+        new_joueur = tournoi(pop, k, tab_fitness)
+        new_joueur = mutationSimple(new_joueur, len(new_joueur), mutation) 
+        new_pop.append(new_joueur)
+    pop = new_pop
+    
+        #print ("\tParameters:", str(params))
+        #print ("\tFitness:", fitness, "(best:", bestFitness,")")
+        #print (str(evaluationIt) +", "+  str(fitness) +", "+ str(bestFitness))
 
-    if bestFitness < fitness:
-        bestParams = list(params)
-        bestFitness = fitness
-        bestEvalIt = evaluationIt
-
-    print ("\tParameters:", str(params))
-    print ("\tFitness:", fitness, "(best:", bestFitness,")")
 
 game.frameskip = 1 # affichage à vitesse normal
 
 print ("Display best individual")
-print ("\tParameters:", str(bestParams))
+print ("\tParameters:", str(bestJoueur))
 i = 0
 while True:
     print ("\tTest #",i)
     i = i + 1
 
     # evalue les parametres
-    fitness = agents[0].evaluate(bestParams)
+    fitness = agents[0].evaluate(bestJoueur)
 
-    print ("\t\tFitness:", fitness, "(original recorded fitness:", bestFitness,", measured at evaluation",bestEvalIt,")")
-    print ("\t\tGenome:", bestParams)
+    print ("\t\tFitness:", fitness, "(original recorded fitness:", bestFitness,", measured at evaluation",bestGen,")")
+    print ("\t\tGenome:", bestJoueur)
 
