@@ -19,6 +19,7 @@ class AlgoGenetique:
                 self.w = file["w"]
                 self.mutation = file["mutation"][0]
                 self.nbPopulation, self.nbFeatures = self.w.shape
+                self.nbFeatures = self.nbFeatures // 2
                 self.results = file["results"]
         else:
             self.nbPopulation = nbPopulation
@@ -65,7 +66,7 @@ class AlgoGenetique:
                     res = self.jeu.computeOccupancyGrid()
                     if verbose:
                         print(res)
-                    self.results[joueur] += max(0, (res[0] - res[1]))
+                    self.results[joueur] += (res[0] > res[1])
 
     def mutationSimple(self, wRow):
         newWRow = wRow.copy()
@@ -139,22 +140,22 @@ class AlgoGenetique:
 if __name__=="__main__":
     ag = AlgoGenetique(nbPopulation = 20, nbFeatures = 22, mutation = 1/22,\
                        pGood = 0.25, pBad = 0.1, pRandom = 0.0,\
-                       n = 5, nbArenas = 4)
-    for i in range(4):
-        ag.w[i, :] = np.array([60,
-                               90,
-                               0., 0.2, 0.5, 0.7, -0.8, -0.6, -0.3, 0.,
-                               1,
-                               0., -0.9, -0.6, -0.7, 0.7, 0.6, 0.9, 0.,
-                               0.8,
-                               1,
-                               0,
-                               60,
-                               90,
-                               0., 0.2, 0.5, 0.7, -0.8, -0.6, -0.3, 0.,
-                               1,
-                               0., -0.9, -0.6, -0.7, 0.7, 0.6, 0.9, 0.,
-                               0.8,
-                               1,
-                               0])
+                       n = 5, nbArenas = 4, filename = "result2.npz")
+#    for i in range(4):
+#        ag.w[i, :] = np.array([60,
+#                               90,
+#                               0., 0.2, 0.5, 0.7, -0.8, -0.6, -0.3, 0.,
+#                               1,
+#                               0., -0.9, -0.6, -0.7, 0.7, 0.6, 0.9, 0.,
+#                               0.8,
+#                               1,
+#                               0,
+#                               60,
+#                               90,
+#                               0., 0.2, 0.5, 0.7, -0.8, -0.6, -0.3, 0.,
+#                               1,
+#                               0., -0.9, -0.6, -0.7, 0.7, 0.6, 0.9, 0.,
+#                               0.8,
+#                               1,
+#                               0])
     ag.run(6)
