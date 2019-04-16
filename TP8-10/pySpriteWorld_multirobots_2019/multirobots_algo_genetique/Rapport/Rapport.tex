@@ -27,7 +27,7 @@
 % imported in the same page. Mostly harmless, can be almost always supressed.
 \usepackage[pstarrows]{pict2e} % More commands for the picture environment
 \usepackage{tikz} % Best way of drawing pictures
-\usetikzlibrary{shapes, arrows, arrows.meta} % Some useful tikz libraries
+\usetikzlibrary{shapes, arrows, arrows.meta, shapes.misc} % Some useful tikz libraries
 
 %------------------------------------------------------------------------------%
 % TABLES                                                                       %
@@ -345,17 +345,17 @@ L’arbre de décision de A a trois comportements de base : explorer l’espace 
 L’optimisation par l’algorithme génétique utilise 44 paramètres, correspondant à deux types de robots, chacun à 22 paramètres. Ces paramètres comprennent 8 coefficients multipliant le vecteur des capteurs pour chacun des comportements EXPLORE et FOLLOW, 2 coefficients déterminant le comportement DEVIATE, un coefficient pour la vitesse de FOLLOW et un autre pour l’angle à partir du quel on suit un robot, un coefficient pour le bruit dans l’exploration et un dernier coefficient déterminant combien de pas sur la même position déterminent un état bloqué.
 
 \begin{center}
-\resizebox{!}{0.9\height}{
+\resizebox{!}{0.88\height}{
 \begin{tikzpicture}
 \node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (A) at (0, 0) {Y a-t-il un ennemi derrière ?};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (B) at (-2, -3) {DEVIATE};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (B) at (-2, -3) {DEVIATE};
 \node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (C) at (2, -3) {Y a-t-il un ennemi devant ?};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (D) at (0, -6) {EXPLORE};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (D) at (0, -6) {EXPLORE};
 \node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (E) at (4, -6) {Y a-t-il un ami devant ?};
 \node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (F) at (2, -9) {Id plus grand que le mien ?};
 \node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (G) at (6, -9) {Est-on face à l'ennemi ?};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (H) at (4, -12) {EXPLORE};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (I) at (8, -12) {FOLLOW};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (H) at (4, -12) {EXPLORE};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (I) at (8, -12) {FOLLOW};
 
 \draw[thick, -Stealth] (A) -- node[midway, left] {oui} (B);
 \draw[thick, -Stealth] (A) -- node[midway, right] {non} (C);
@@ -373,16 +373,18 @@ L’optimisation par l’algorithme génétique utilise 44 paramètres, correspo
 
 L’arbre de décision B se décompose en trois parties, I, II et III, et contient les comportements de base suivants~:
 \begin{itemize}[itemindent=*]
-\item 2 : éviter des murs et ignorer des robots
-\item 3 : suivre un robot
-\item 4 : éviter des robots et ignorer des murs
-\item 5 : éviter des robots et des murs
-\item 6 : longer un mur
-\item 7 : s’arrêter
+\item GO\_FOWARD : aller tout droite
+\item AVOID\_WALLS : éviter des murs et ignorer des robots
+\item FOLLOW\_ENNEMY : suivre un robot
+\item AVOID\_MATES : éviter des robots amis
+\item EXPLORE : éviter des robots et des murs
+\item ALONG\_WALLS : longer un mur
+\item STOP : s’arrêter
+\item TURN\_RIGHT : tourner à droite
 \item Arrière : marche arrière
 \end{itemize}
 
-La partie I détermine si le robot se déplacera en longeant les murs, ce qui n’est fait qu’au maximum par un robot (celui d’id 2). La partie II détermine si le robot doit suivre un ennemi, ce qui n’est fait qu’au maximum par deux robots (ids 0 et 2). Finalement, la partie III essaie de se débarrasser des ennemis qui nous suivent et éviter les situations de blocage.
+La partie I détermine si le robot se déplacera en longeant les murs, ce qui n’est fait qu’au maximum par un robot (celui d’id 2). La partie II détermine si le robot doit suivre un ennemi, ce qui n’est fait qu’au maximum par deux robots (ids 0 et 2). Finalement, la partie III essaie de se débarrasser des ennemis qui nous suivent et éviter les situations de blocage. Des derniers tests permettent de donner des ajustements fins au comportement du joueur suivant les murs, en utilisant la stratégie TURN\_RIGHT.
 
 \noindent\begin{minipage}[t]{0.5\textwidth}
 \resizebox{\textwidth}{!}{
@@ -390,17 +392,25 @@ La partie I détermine si le robot se déplacera en longeant les murs, ce qui n�
 \node[draw, rectangle, dashed, align=center] at (-4, 0) {Partie I};
 \node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (A) at (0, 0) {\texttt{id == 2} ?};
 \node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (B) at (-2, -3) {Ami devant et pas d'ennemi devant ?};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (C) at (2, -3) {5};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (D) at (-4, -6) {4};
-\node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (E) at (0, -6) {Début ou fin de partie ?};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (F) at (-2, -9) {6};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (G) at (2, -9) {5};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (C) at (2, -3) {EXPLORE};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (D) at (-4, -6) {AVOID\_MATES};
+\node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (E) at (0, -6) {Fin de partie ?};
+\node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (F) at (-2, -9) {Début de partie ?};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (G) at (2, -9) {ALONG\_WALLS};
+\node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (H) at (0, -12) {Mur qu'au capteur 6 ?};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (I) at (-4, -12) {EXPLORE};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (J) at (-2, -15) {GO\_FORWARD};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (K) at (2, -15) {ALONG\_WALLS};
 \draw[thick, -Stealth] (A) -- node[midway, left] {oui} (B);
 \draw[thick, -Stealth] (A) -- node[midway, right] {non} (C);
 \draw[thick, -Stealth] (B) -- node[midway, left] {oui} (D);
 \draw[thick, -Stealth] (B) -- node[midway, right] {non} (E);
-\draw[thick, -Stealth] (E) -- node[midway, left] {oui} (F);
-\draw[thick, -Stealth] (E) -- node[midway, right] {non} (G);
+\draw[thick, -Stealth] (E) -- node[midway, left] {non} (F);
+\draw[thick, -Stealth] (E) -- node[midway, right] {oui} (G);
+\draw[thick, -Stealth] (F) -- node[midway, right] {oui} (H);
+\draw[thick, -Stealth] (F) -- node[midway, left] {non} (I);
+\draw[thick, -Stealth] (H) -- node[midway, left] {oui} (J);
+\draw[thick, -Stealth] (H) -- node[midway, right] {non} (K);
 \end{tikzpicture}
 }
 \end{minipage}\begin{minipage}[t]{0.5\textwidth}
@@ -409,12 +419,12 @@ La partie I détermine si le robot se déplacera en longeant les murs, ce qui n�
 \node[draw, rectangle, dashed, align=center] at (4, 0) {Partie II};
 \node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (A) at (0, 0) {\texttt{id == 0} ou \texttt{id == 2} ?};
 \node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (B) at (2, -3) {Y a-t-il un ennemi devant ?};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (C) at (-2, -3) {5};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (C) at (-2, -3) {EXPLORE};
 \node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (D) at (4, -6) {Y a-t-il un ami devant ?};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (E) at (0, -6) {Garder le comportement de la partie I};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (E) at (0, -6) {Garder le comportement de la partie I};
 \node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (F) at (4, -9) {Est-on face à l'ennemi ?};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (G) at (4, -12) {2};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (H) at (0, -12) {3};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (G) at (4, -12) {AVOID\_WALLS};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (H) at (0, -12) {FOLLOW\_ENEMY};
 \draw[thick, -Stealth] (A) -- node[midway, right] {oui} (B);
 \draw[thick, -Stealth] (A) -- node[midway, left] {non} (C);
 \draw[thick, -Stealth] (B) -- node[midway, right] {oui} (D);
@@ -427,18 +437,18 @@ La partie I détermine si le robot se déplacera en longeant les murs, ce qui n�
 }
 \end{minipage}
 
-\vspace*{4em}
+\vfill
 
 \begin{center}
 \resizebox{!}{0.9\height}{
 \begin{tikzpicture}
 \node[draw, rectangle, dashed, align=center] at (4, 0) {Partie III};
 \node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (A) at (0, 0) {Y a-t-il un ennemi derrière ?};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (B) at (-2, -3) {7};
-\node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (C) at (2, -3) {Comportement de la partie II == 2 ?};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (D) at (0, -6) {Garder le comportement de la partie II};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (B) at (-2, -3) {STOP};
+\node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (C) at (2, -3) {Comportement de la partie II == AVOID\_WALLS ?};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (D) at (0, -6) {Garder le comportement de la partie II};
 \node[draw, shape = rectangle, text width=3cm, minimum height=1.6cm, thick, align=center] (E) at (4, -6) {Suis-je bloqué ?};
-\node[draw, shape = ellipse, text width=2cm, minimum height=0.8cm, thick, align=center] (F) at (4, -9) {Arrière};
+\node[draw, shape = rounded rectangle, text width=3cm, minimum height=0.8cm, thick, align=center] (F) at (4, -9) {Arrière};
 \draw[thick, -Stealth] (A) -- node[midway, left] {oui} (B);
 \draw[thick, -Stealth] (A) -- node[midway, right] {non} (C);
 \draw[thick, -Stealth] (C) -- node[midway, left] {oui} (D);
