@@ -11,7 +11,7 @@ from genetique_jeu import game, Jeu
 class AlgoGenetique:
     def __init__(self, nbPopulation, nbFeatures, mutation,\
                  pGood, pBad, pRandom,\
-                 n, nbArenas, filename = None):
+                 n, nbArenas, en, filename = None):
         self.fromFile = False
         if filename is not None:
             self.fromFile = True
@@ -34,6 +34,7 @@ class AlgoGenetique:
         self.nbRandom = int(pRandom*self.nbPopulation)
         assert self.nbGood > 0 and self.nbGood+self.nbBad+self.nbRandom < self.nbPopulation
         self.n = n
+        self.en = en
         self.nbArenas = nbArenas
         self.jeu = Jeu(maxIterations = 4000, nbAgents = 8, game = game)
         
@@ -58,15 +59,16 @@ class AlgoGenetique:
         """
         for joueur in range(self.nbPopulation):
             for arena in range(self.nbArenas):
-                for fois in range(self.n):
-                    if verbose:
-                        print("Joueur {}, arène {}, fois {}".format(joueur, arena, fois))
-                    self.jeu.reset(arena, self.w[joueur, :])
-                    self.jeu.run()
-                    res = self.jeu.computeOccupancyGrid()
-                    if verbose:
-                        print(res)
-                    self.results[joueur] += (res[0] > res[1])
+                for enemi in range(self.en):
+                    for fois in range(self.n):
+                        if verbose:
+                            print("Joueur {}, arène {}, enemi {}, fois {}".format(joueur, arena, enemi, fois))
+                        self.jeu.reset(arena, self.w[joueur, :], enemi)
+                        self.jeu.run()
+                        res = self.jeu.computeOccupancyGrid()
+                        if verbose:
+                            print(res)
+                        self.results[joueur] += (res[0] > res[1])
 
     def mutationSimple(self, wRow):
         newWRow = wRow.copy()
@@ -139,23 +141,50 @@ class AlgoGenetique:
         
 if __name__=="__main__":
     ag = AlgoGenetique(nbPopulation = 20, nbFeatures = 22, mutation = 1/22,\
-                       pGood = 0.25, pBad = 0.1, pRandom = 0.0,\
-                       n = 5, nbArenas = 4, filename = "result2.npz")
-#    for i in range(4):
-#        ag.w[i, :] = np.array([60,
-#                               90,
-#                               0., 0.2, 0.5, 0.7, -0.8, -0.6, -0.3, 0.,
-#                               1,
-#                               0., -0.9, -0.6, -0.7, 0.7, 0.6, 0.9, 0.,
-#                               0.8,
-#                               1,
-#                               0,
-#                               60,
-#                               90,
-#                               0., 0.2, 0.5, 0.7, -0.8, -0.6, -0.3, 0.,
-#                               1,
-#                               0., -0.9, -0.6, -0.7, 0.7, 0.6, 0.9, 0.,
-#                               0.8,
-#                               1,
-#                               0])
+                       pGood = 0.40, pBad = 0.1, pRandom = 0.0,\
+                       n = 3, nbArenas = 4, en = 3)
+    for i in range(3):
+        ag.w[i, :] = np.array([60,
+                               90,
+                               0., 0.2, 0.5, 0.7, -0.8, -0.6, -0.3, 0.,
+                               1,
+                               0., -0.9, -0.6, -0.7, 0.7, 0.6, 0.9, 0.,
+                               0.8,
+                               1,
+                               0,
+                               60,
+                               90,
+                               0., 0.2, 0.5, 0.7, -0.8, -0.6, -0.3, 0.,
+                               1,
+                               0., -0.9, -0.6, -0.7, 0.7, 0.6, 0.9, 0.,
+                               0.8,
+                               1,
+                               0])
+    for i in range(3):
+        ag.w[i + 2, :] = np.array([ 8.00000000e+01,  1.10000000e+02, -5.00000000e-01,  4.00000000e-01,
+        7.00000000e-01,  7.00000000e-01,  8.00000000e-01,  5.00000000e-01,
+       -3.00000000e-01, -6.00000000e-01,  0.00000000e+00, -8.00000000e-01,
+        3.00000000e-01,  1.00000000e-01, -7.00000000e-01, -1.00000000e+00,
+       -2.00000000e-01,  1.00000000e+00, -9.00000000e-01,  8.00000000e-01,
+        1.00000000e-01, -2.00000000e-01,  3.00000000e+01,  1.10000000e+02,
+        1.00000000e+00,  2.00000000e-01,  6.00000000e-01, -2.22044605e-16,
+       -7.00000000e-01, -2.00000000e-01, -9.00000000e-01,  0.00000000e+00,
+        6.00000000e-01,  5.00000000e-01,  4.00000000e-01, -6.00000000e-01,
+       -7.00000000e-01, -3.00000000e-01, -1.00000000e+00,  9.00000000e-01,
+       -7.00000000e-01,  5.00000000e-01,  0.00000000e+00, -8.00000000e-01])
+    
+    ag.w[6, :] = np.array([ 6.00000000e+01,  9.00000000e+01,  3.00000000e-01,  2.00000000e-01,   
+    5.00000000e-01,  7.00000000e-01,  8.00000000e-01, -5.00000000e-01,
+   -3.00000000e-01,  0.00000000e+00,  1.00000000e+00,  0.00000000e+00,
+   -9.00000000e-01, -6.00000000e-01, -7.00000000e-01, -1.00000000e+00,
+   -2.00000000e-01,  9.00000000e-01,  5.00000000e-01,  8.00000000e-01,
+    1.00000000e+00,  0.00000000e+00,  6.00000000e+01,  9.00000000e+01,
+   -2.22044605e-16,  2.00000000e-01,  5.00000000e-01,  7.00000000e-01,
+   -8.00000000e-01, -6.00000000e-01, -3.00000000e-01,  0.00000000e+00,
+    1.00000000e+00,  4.00000000e-01, -1.00000000e-01,  6.00000000e-01,
+   -7.00000000e-01,  1.00000000e-01,  6.00000000e-01,  9.00000000e-01,
+    0.00000000e+00,  8.00000000e-01,  1.00000000e+00, -1.00000000e+00])
+    
+    
+    
     ag.run(6)

@@ -40,8 +40,10 @@ class Jeu():
         init('empty', MyTurtle, self.screen_width, self.screen_height) # display is re-dimensioned, turtle acts as a template to create new players/robots
         self.game.auto_refresh = False # display will be updated only if game.mainiteration() is called
         self.game.frameskip = self.frameskip
+
         
-    def reset(self, arena, w):
+    def reset(self, arena, w, nb):
+        self.nb = nb
         self.arena = arena
         self.iteration = 0
         self.startoccupancyGrid()
@@ -86,7 +88,7 @@ class Jeu():
             p.oriente(orientation)
             p.numero = nbAgentsCreated
             nbAgentsCreated += 1
-            self.agents.append(AgentTypeB(p, self))
+            self.agents.append(AgentTypeB(p, self,self.nb))
     
     def setupArena(self):
         if self.arena == 0:
@@ -107,7 +109,7 @@ class Jeu():
                 self.addObstacle(row=i,col=7)
             for i in range(8,16):
                 self.addObstacle(row=i,col=8)
-        else:
+        elif self.arena == 3:
             w = self.screen_width//32
             h = self.screen_height//32
             for i in range(h):
@@ -115,6 +117,30 @@ class Jeu():
                     continue
                 self.addObstacle(row=i,col=w//2)
                 self.addObstacle(row=i,col=w//2-1)
+        else:
+            hlist = [
+             [3,[4,5,6,7,8,9,10,11]],
+             [6,[4,5,6,7,8]],
+             [9,[7,8,9,10,11]],
+             [12,[4,5,6,7,8,9,10,11]]
+            ]
+            vlist = [
+                     [4,[7,8,9,10,11]],
+                     [11,[4,5,6,7,8]],
+                    ]
+            for l in hlist:
+                lig = l[0]
+                col_list = l[1]
+                for col in col_list:
+                    self.addObstacle(row=lig,col=col)
+            
+            for l in vlist:
+                col = l[0]
+                lig_list = l[1]
+                for lig in lig_list:
+                    self.addObstacle(row=lig,col=col)
+                
+                
         
     def addObstacle(self, row, col):
         # le sprite situe colone 13, ligne 0 sur le spritesheet
@@ -150,7 +176,22 @@ class MyTurtle(Turtle): # also: limit robot speed through this derived class
 if __name__=="__main__":
     jeu = Jeu(maxIterations = 4000, nbAgents = 8, game = game)
     for i in range(4):
-        jeu.reset(i%4)
+        jeu.reset(4, w = np.array([60,
+                               90,
+                               0., 0.2, 0.5, 0.7, -0.8, -0.6, -0.3, 0.,
+                               1,
+                               0., -0.9, -0.6, -0.7, 0.7, 0.6, 0.9, 0.,
+                               0.8,
+                               1,
+                               0,
+                               60,
+                               90,
+                               0., 0.2, 0.5, 0.7, -0.8, -0.6, -0.3, 0.,
+                               1,
+                               0., -0.9, -0.6, -0.7, 0.7, 0.6, 0.9, 0.,
+                               0.8,
+                               1,
+                               0]), nb = 2)
         jeu.run()
         print(jeu.computeOccupancyGrid())
     pygame.quit()
